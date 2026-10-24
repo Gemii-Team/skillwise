@@ -1,0 +1,2024 @@
+# SE – SkillWise
+## Canonical Product & System Context for Claude Code
+
+- **Context version:** 24 Oct 2026 (รวมผลประชุมครั้งที่ 1 แล้ว — ดูข้อ 60.10)
+- **Project:** SkillWise Social Enterprise
+- **Repository:** ทีมทำงานหลายเครื่อง จึงไม่ระบุ path ให้ใช้ repository ที่เปิดอยู่ในเครื่องนั้น
+
+---
+
+## 0. วิธีใช้ Context นี้
+
+เอกสารนี้เป็น Canonical Context หลักของโปรเจกต์ SkillWise
+
+Claude Code ต้องใช้ลำดับความน่าเชื่อถือดังนี้:
+
+1. **[CANONICAL]** ข้อตกลงเดิมที่ทีมเคยคุยและพัฒนาไว้ = ใช้เป็น Baseline
+2. **[CONFIRMED]** เรื่องที่ทีมยืนยันภายหลัง = ใช้เพิ่มเติมหรือ Override ของเดิมได้
+3. **[DIRECTION]** แนวทางที่กำลังพัฒนา = ใช้ออกแบบได้ แต่ต้องไม่ Hard-code Decision ที่ยังไม่ Final
+4. **[OPEN]** ยังไม่ตัดสินใจ = ห้ามเดาเป็นข้อสรุป
+5. **[REFERENCE]** กรณีศึกษา / Inspiration / ข้อเสนอจาก AI = ใช้ประกอบความคิดเท่านั้น
+
+หาก Requirement ใหม่ขัดกับ Canonical Context นี้:
+อย่าแก้ของเดิมเงียบ ๆ
+ให้ชี้ Conflict ให้ทีมเห็นก่อน เช่น
+
+> "Requirement ใหม่นี้ทำให้ผู้บริหารสามารถเห็น Coach Feedback รายบุคคล ซึ่งขัดกับ Privacy Principle เดิม ต้องการ Override หลักการเดิมหรือไม่?"
+
+---
+
+## 1. SkillWise คืออะไร
+
+**[CANONICAL]**
+
+SkillWise เป็น Social Enterprise ที่พัฒนาระบบและบริการเพื่อยกระดับความสามารถของครูในการเป็น Facilitator (FA)
+
+เป้าหมายคือให้ครูสามารถนำทักษะ FA ไปใช้กับสถานการณ์จริง เพื่อช่วยพัฒนาศักยภาพของนักเรียน
+
+SkillWise ไม่ใช่เพียง:
+
+- LMS
+- Online Course
+- ระบบส่งงาน
+- AI Canvas
+- ระบบบริหารโรงเรียน
+- Course Marketplace
+
+สิ่งเหล่านี้อาจเป็นองค์ประกอบของ Product แต่ไม่ใช่แก่นของ SkillWise
+
+### Core Definition
+
+SkillWise คือระบบพัฒนาครูให้เป็น Facilitator ที่สามารถอ่านสถานการณ์ ออกแบบกระบวนการ ลงมือทำ สังเกต สะท้อนผล และปรับการพัฒนาจากสถานการณ์จริง เพื่อช่วยปลดล็อกศักยภาพของผู้เรียนอย่างต่อเนื่อง
+
+English:
+
+> SkillWise is a professional teacher-development platform that helps educators build facilitation capability and unlock student potential through real practice, structured design, reflection, coaching, and AI-assisted tools.
+
+---
+
+### 1.1 Brand-level Definition
+
+**[CANONICAL — 24 Oct 2026]**
+
+ในระดับ **Brand / Company** SkillWise มีขอบเขตกว้างกว่า Product สำหรับโรงเรียน
+
+SkillWise คือ **ระบบนิเวศสำหรับการพัฒนามนุษย์ (Human Growth Ecosystem)** ผ่าน 3 องค์ประกอบหลัก:
+
+- **Courses**
+- **Tools**
+- **Platform**
+
+โดยมุ่งพัฒนา 3 แกนหลัก:
+
+1. **พัฒนานิสัย (Habit Development)**
+2. **ปลดล็อกศักยภาพ (Unlock Potential)**
+3. **ยกระดับจิตใจ (Inner Growth / Elevating the Mind)**
+
+เป้าหมายปลายทางคือ:
+
+> **พัฒนาผู้คนให้เติบโต และร่วมสร้างสังคมที่ดีกว่าเดิม**
+
+Tagline ที่ยืนยันแล้ว:
+
+> **Growing People, Brighter Society.**
+
+### 1.2 Brand vs Education Product
+
+**[CANONICAL]**
+
+ต้องแยก 2 ระดับให้ชัดเจน:
+
+#### SkillWise Brand / Company
+
+ครอบคลุม Human Growth Ecosystem ในภาพใหญ่:
+
+**Courses + Tools + Platform**
+
+เพื่อ:
+
+**Habit Development + Unlock Potential + Inner Growth**
+
+#### SkillWise Education / School Product
+
+เป็น Product สำคัญภายใต้ Brand ที่มุ่ง:
+
+> **พัฒนาครูให้เป็น Facilitator ที่สามารถพัฒนานิสัยและปลดล็อกศักยภาพของผู้เรียนจากสถานการณ์จริง**
+
+ดังนั้น Definition เรื่อง **FA Development** ใน Context นี้ยังคงเป็น Core ของ Education Product
+
+แต่ไม่ควรตีความว่า SkillWise ทั้งบริษัทจะจำกัดตัวเองอยู่เฉพาะ Teacher Development ตลอดไป
+
+---
+
+## 2. Product North Star
+
+**[CANONICAL]**
+
+ทุก Feature ต้องช่วยสนับสนุนวงจรนี้:
+
+```
+Teacher sees a real situation
+↓
+Understand the learner / group
+↓
+Identify potential
+↓
+Design development
+↓
+Facilitate / Practice
+↓
+Observe what happens
+↓
+Reflect
+↓
+Receive coaching / feedback
+↓
+Adjust
+↓
+Practice again
+↓
+Teacher FA capability improves
+↓
+Student grows
+```
+
+Platform, AI, Canvas, Course และ Dashboard เป็นเครื่องมือสนับสนุนวงจรนี้
+ไม่ใช่ตัวแทนของวงจรนี้
+
+---
+
+## 3. FA Development คือแกนหลัก
+
+**[CANONICAL]**
+
+เป้าหมายของ SkillWise ไม่ใช่แค่ให้ครู "รู้วิธีจัดกิจกรรม"
+แต่ต้องพัฒนาครูไปสู่ระดับที่สามารถ:
+
+- อ่านคน
+- อ่านกลุ่ม
+- อ่านสถานการณ์
+- สังเกตสิ่งที่เกิดขึ้นจริง
+- ตั้งคำถาม
+- Deep Listening
+- สร้าง Psychological Safety
+- ออกแบบ Learning Process
+- อ่าน Group Dynamics
+- ปรับ Intervention หน้างาน
+- Reflection
+- Meaning Making
+- ให้ Feedback
+- เชื่อมการเรียนรู้กลับสู่ชีวิตจริง
+- ปรับกระบวนการหลังเห็นผลลัพธ์
+
+แนวคิดสำคัญ:
+
+> **FA = อ่านการเรียนรู้ตรงหน้า แล้วพาไปต่อ**
+> ไม่ใช่เพียงทำ Activity ตาม Script
+
+---
+
+### 3.1 SkillWise FA Differentiation
+
+**[CANONICAL — 24 Oct 2026]**
+
+SkillWise ไม่ได้มุ่งพัฒนา **Facilitator ทั่วไป** เท่านั้น
+
+จุดแตกต่างของ **SkillWise FA** คือการใช้ทักษะ Facilitation เพื่อ:
+
+- **พัฒนานิสัย (Habit Development)**
+- **ปลดล็อกศักยภาพของผู้เรียน (Unlock Human Potential)**
+- ช่วยให้ผู้เรียนเกิดการตระหนักรู้และเติบโตจากประสบการณ์จริง
+- เชื่อมสิ่งที่เกิดขึ้นในห้องเรียนกับการเปลี่ยนแปลงในชีวิตจริง
+
+ดังนั้น SkillWise FA ควรถูกมองเป็น:
+
+> **Facilitator for Human Growth**
+
+ไม่ใช่เพียงผู้ดำเนินกิจกรรมหรือผู้จัด Workshop
+
+Canvas, 7 กิจวัตร, Reflection, Coaching, NVC และเครื่องมืออื่น เป็นกลไกที่ช่วยให้ SkillWise FA ทำหน้าที่นี้ได้อย่างเป็นระบบ
+
+---
+
+## 4. Practice-Based Development
+
+**[CANONICAL]**
+
+การพัฒนา FA ไม่ควรเป็น
+
+```
+เรียน Content → ทำ Quiz → ได้ Certificate → จบ
+```
+
+แต่ควรเป็น:
+
+```
+Learn
+↓
+Practice
+↓
+Real Case
+↓
+Reflection
+↓
+Coach Feedback
+↓
+Adjust
+↓
+Practice Again
+```
+
+นี่คือ Learning Architecture หลักของ SkillWise
+
+---
+
+## 5. Do → Reflect → Share → Grow
+
+**[CANONICAL]**
+
+ทีมเคยใช้วงจร:
+
+- **Do** — ลงมือทำจริง
+- **Reflect** — กลับมามองสิ่งที่เกิดขึ้น
+- **Share** — แลกเปลี่ยนกับ Coach / Peer / Community
+- **Grow** — นำสิ่งที่เรียนรู้กลับไปปรับและทดลองใหม่
+
+SkillWise ควรรักษา Loop นี้ไว้ใน Product
+
+---
+
+## 6. Unlock Hidden Potential
+
+**[CANONICAL]**
+
+หนึ่งใน Framework สำคัญที่ทีมพัฒนามาก่อน SkillWise คือ **Unlock Hidden Potential**
+
+เปลี่ยนวิธีคิดจาก:
+
+> "เด็กมีปัญหาอะไร?"
+
+เป็น:
+
+> "มีศักยภาพอะไรที่ยังไม่ได้รับการพัฒนา และหากพัฒนาแล้ว เด็กจะตอบสนองต่อสถานการณ์เดิมได้ดีขึ้นอย่างไร?"
+
+Potential ไม่ได้หมายถึงเฉพาะคุณธรรม สามารถเป็น:
+
+- Self-management
+- Emotional regulation
+- Communication
+- Leadership
+- Teamwork
+- Critical thinking
+- Creativity
+- Social ability
+- Language
+- Academic ability
+- Sport
+- Art
+- Digital ability
+- ความสามารถเฉพาะด้าน
+- Character
+- Life Skills
+
+---
+
+## 7. Unlock Hidden Potential Canvas
+
+**[CANONICAL]**
+
+Canvas ไม่ใช่แค่ Form แต่เป็น Thinking Framework ของครู
+
+โครงสร้างที่พัฒนามาก่อนมีประมาณ:
+
+1. ศักยภาพที่ต้องการปลดล็อก
+2. ทำไมจึงเลือกศักยภาพนี้
+3. ภาพปลายทาง
+4. Routine / Practice
+5. Scaffolding
+6. Opportunity
+7. Signals of Success
+
+ชื่อ Field สามารถปรับตาม UX ได้
+แต่ Logic หลักไม่ควรถูกทำลาย
+
+---
+
+## 8. Character Skills + Scaffolding + Systems of Opportunity
+
+**[CANONICAL]**
+
+การปลดล็อกศักยภาพไม่ได้เกิดจากกิจกรรมครั้งเดียว ทีมใช้ Framework 3 ส่วน:
+
+### 8.1 Character Skills
+
+สร้างฐานภายใน เช่น
+
+- Self-management
+- วินัย
+- ความรับผิดชอบ
+- ความพยายาม
+- การอยู่ร่วมกับผู้อื่น
+- Character
+
+### 8.2 Scaffolding
+
+สิ่งที่ช่วยให้ผู้เรียนพัฒนา เช่น
+
+- Teacher
+- FA
+- Coach
+- Question
+- Feedback
+- NVC
+- Tool
+- Activity
+- Peer
+- Environment
+- Support System
+
+### 8.3 Systems of Opportunity
+
+ต้องสร้างโอกาสให้เด็กนำสิ่งที่พัฒนาไปใช้จริง เช่น
+
+- ทำงานกลุ่ม
+- เป็นผู้นำ
+- นำเสนอ
+- รับผิดชอบงาน
+- แก้ปัญหา
+- ทำ Project
+- แสดงความสามารถ
+- ช่วยผู้อื่น
+- สร้างผลงาน
+
+หลักสำคัญ:
+
+> **พัฒนาศักยภาพแล้วต้องมีเวทีให้ใช้**
+
+---
+
+## 9. 7 กิจวัตรความดี
+
+**[CANONICAL]**
+
+7 กิจวัตรเป็น Existing Practice Asset จาก Sila5School
+
+แต่ใน SkillWise: **7 กิจวัตรไม่ใช่ Main Product**
+
+ความสัมพันธ์ที่ถูกต้องคือ:
+
+```
+FA = Core Capability
+↓
+Unlock Hidden Potential = Development Framework
+↓
+7 กิจวัตร = Character / Practice System หนึ่งชุด
+```
+
+SkillWise ไม่จำเป็นต้องใช้คำว่า
+
+- ศีล 5
+- คุณธรรม
+- ความดี
+
+เป็น Main Marketing Message
+แต่สามารถใช้องค์ความรู้เดิมภายในระบบได้
+
+---
+
+## 10. ความสัมพันธ์กับ Sila5School
+
+**[CANONICAL]**
+
+SkillWise ไม่ได้เริ่มจากศูนย์
+สามารถนำ IP, Framework และ Learning System จาก `school.sila5.com` มาพัฒนาใหม่
+
+โดยเฉพาะ:
+
+- Unlock Hidden Potential Canvas
+- Canvas Pool
+- Activity Planning
+- Development Plan
+- Evidence
+- Reflection
+- Teacher Development
+- Team Collaboration
+- AI Assistant
+- Progress Tracking
+
+แต่:
+
+> **SkillWise ไม่ควรเป็น Clone ของ Sila5School**
+> ต้อง Re-design เพื่อเป็น Professional / Commercial Platform
+
+---
+
+### 10.1 Dual-brand Strategy: Sila5School × SkillWise
+
+**[CANONICAL — 24 Oct 2026]**
+
+Sila5School และ SkillWise ต้องสามารถ **ขับเคลื่อนคู่ขนานกันโดยไม่สับสนหรือซ้อนทับกัน**
+
+#### Sila5School
+
+Main Entry / ตัวชูโรงคือ:
+
+> **7 กิจวัตรความดี**
+
+โดยใช้ **FA** เป็นกลไกสำคัญในการ Delivery และช่วยให้ครูนำ 7 กิจวัตรไปใช้จนเกิดการพัฒนานิสัยจริง
+
+#### SkillWise
+
+Main Entry / Core Capability คือ:
+
+> **FA for Human Growth**
+
+โดยมี:
+
+- Unlock Hidden Potential
+- Canvas
+- Habit Development
+- 7 กิจวัตร
+- Reflection
+- Coaching
+- AI-assisted tools
+
+เป็น Framework / Practice / Tool ที่อยู่ภายใต้ Ecosystem
+
+ดังนั้นความสัมพันธ์โดยหลักคือ:
+
+**Sila5School**
+→ ชู 7 กิจวัตร
+→ ใช้ FA เป็นกลไก Delivery
+
+**SkillWise**
+→ ชู FA for Human Growth
+→ ใช้ Canvas / Unlock Hidden Potential เป็น Core Tool & Framework
+→ 7 กิจวัตรสามารถเป็น Practice Set / Subset หนึ่งใน Ecosystem
+
+### 10.2 Brand Boundary Principle
+
+**[CANONICAL]**
+
+ต้องหลีกเลี่ยงการสื่อสารที่ทำให้ตลาดเข้าใจว่า:
+
+- SkillWise คือชื่อใหม่ของ Sila5School
+- Sila5School เป็นเพียง Package หนึ่งของ SkillWise
+- SkillWise มีเฉพาะเรื่องศีล 5 หรือคุณธรรม
+- SkillWise กับ Sila5School แข่งขันกันเอง
+
+แนวทางคือให้ทั้งสองแบรนด์ **ใช้ IP และองค์ความรู้ร่วมกันได้** แต่มี Entry Message และ Positioning ต่างกัน
+
+---
+
+## 11. Positioning
+
+**[CANONICAL / DIRECTION]**
+
+ในระดับ Brand ให้ยึดแนวคิด:
+
+> **Growing People, Brighter Society.**
+
+และภาพรวม:
+
+> **Human Growth Ecosystem — Courses + Tools + Platform**
+
+สำหรับ Education / School Product ให้สื่อสารด้วยภาษา Professional เช่น:
+
+- Human Potential
+- Life Skills
+- Leadership
+- Facilitation
+- Teacher Capability
+- Student Potential
+- Classroom Transformation
+- Future Skills
+- Professional Development
+
+มากกว่าการใช้ ศีล 5 / คุณธรรม เป็น Entry Message
+
+---
+
+## 12. AI Role
+
+**[CANONICAL]**
+
+AI เป็น **Thinking Assistant / Design Assistant** ไม่ใช่ Decision Maker
+
+AI อาจช่วย:
+
+- วิเคราะห์ Situation
+- ช่วยตั้งคำถาม
+- ช่วยค้นหา Potential
+- เชื่อมข้อมูล
+- ตรวจ Logic ของ Canvas
+- แนะนำ Routine
+- แนะนำ Scaffolding
+- ช่วยคิด Opportunity
+- ช่วยคิด Signal
+- สังเคราะห์ Canvas
+- เปลี่ยน Canvas เป็น Plan
+- ช่วย Reflection
+- สรุปข้อมูลให้ Coach
+- ช่วยวิเคราะห์ Pattern
+
+แต่:
+
+> **Final Decision เป็นของครู**
+
+---
+
+## 13. Canvas Pool
+
+**[CANONICAL]**
+
+Canvas สามารถมีหลาย Scope เช่น:
+
+- Individual student
+- Student group
+- Classroom
+- Other scope ในอนาคต
+
+หลาย Canvas สามารถนำมาสังเคราะห์เพื่อดู Pattern และสร้าง Development Plan
+
+ตัวอย่าง:
+
+```
+Situation
+↓
+Canvas
+↓
+Canvas Pool
+↓
+Pattern Analysis
+↓
+Prioritize Potential
+↓
+Development Plan
+```
+
+ในระบบเดิมมีแนวคิดให้สังเคราะห์ Canvas หลายใบ เช่นประมาณ 5 ใบ
+
+แต่: **อย่า Hard-code ตัวเลขนี้จนกว่าจะ Final**
+
+---
+
+## 14. Canvas → Action
+
+**[CANONICAL]**
+
+Canvas ต้องไม่จบที่การวิเคราะห์ Core Flow ควรไปถึง:
+
+```
+Canvas
+↓
+Development Plan
+↓
+Activity / Intervention
+↓
+Implementation
+↓
+Evidence
+↓
+Reflection
+↓
+Feedback
+↓
+Revision
+↓
+Next Cycle
+```
+
+---
+
+## 15. Evidence / Submission
+
+**[DIRECTION]**
+
+การส่งผลงานครูไม่ควรออกแบบเป็น:
+
+```
+Upload → Score
+```
+
+ควรเป็นส่วนหนึ่งของ Development Cycle:
+
+```
+Case
+↓
+Design
+↓
+Practice
+↓
+Evidence
+↓
+Reflection
+↓
+Coach Feedback
+```
+
+Evidence อาจรองรับ:
+
+- Text
+- Image
+- File
+- Video
+- Link
+- Observation
+- Reflection
+
+Exact Types: **[OPEN]**
+
+---
+
+## 16. Coaching
+
+**[CANONICAL]**
+
+Coaching เป็นส่วนสำคัญของ Skill Development
+Coach ไม่ได้มีหน้าที่เพียงตรวจคะแนน สามารถใช้:
+
+- Question
+- Comment
+- Reflection Prompt
+- Recommendation
+- Skill Feedback
+- Rubric
+- Next Practice
+
+เป้าหมายคือ **Development ไม่ใช่ Evaluation อย่างเดียว**
+
+---
+
+## 17. Super FA เป็นฐานสำคัญ
+
+**[CANONICAL]**
+
+องค์ความรู้จาก Super FA ควรถูกนำมาใช้ในการออกแบบ SkillWise
+
+แก่นคือ:
+
+> **ไม่ใช่คอร์สเพิ่ม แต่เป็น Professional FA Support**
+
+ครูต้องนำ Case จริงกลับมา:
+
+```
+สะท้อน → ฝึก → ทดลอง → กลับมาเรียนรู้ใหม่
+```
+
+---
+
+## 18. FA Competency
+
+**[CANONICAL]**
+
+ทีมมี Competency เดิม 9 ด้านจาก Super FA:
+
+1. FA Presence & Safety
+2. Questioning for Awareness
+3. Deep Listening / NVC
+4. Group Dynamics & Energy
+5. Reflection & Meaning-Making
+6. Activity Design & Flow
+7. Habit Development Facilitation
+8. Canvas to Plan & VA/PA Docs
+9. Subject Integration
+
+มีแนวคิด Rubric 5 ระดับ
+
+ดังนั้น: **อย่าออกแบบ FA Skill Model ใหม่จากศูนย์โดยไม่ดู Framework เดิมนี้**
+การนำมาใช้กับ SkillWise แบบ Commercial ยังสามารถปรับได้
+
+---
+
+## 19. Skill Progression
+
+**[DIRECTION]**
+
+SkillWise ควรรองรับการเก็บ Skill Progress ในอนาคต เช่น:
+
+- Baseline
+- Practice
+- Coach Assessment
+- Self Assessment
+- Evidence
+- Progress over time
+
+แต่ต้องระวังไม่ให้ระบบกลายเป็น Teacher Performance Appraisal
+
+> **Skill Development ≠ HR Performance Evaluation**
+
+---
+
+## 20. Portfolio
+
+**[DIRECTION]**
+
+ครูควรสามารถสะสม Professional Development Portfolio เช่น:
+
+- Canvas
+- Case
+- Plan
+- Activity
+- Evidence
+- Reflection
+- Coach Feedback
+- Course
+- Skill Progress
+
+ข้อมูลเหล่านี้อาจต่อยอดไปสู่:
+
+- Professional Portfolio
+- Development Record
+- Certificate
+- VA / PA Documentation
+
+---
+
+## 21. Business Model
+
+**[CONFIRMED DIRECTION]**
+
+รายได้ SkillWise มีอย่างน้อย 2 กลุ่ม:
+
+### 21.1 Subscription Platform
+
+เป้าหมายคือสร้าง Recurring Revenue
+
+Subscription ให้ครูเข้าถึง:
+
+- Professional Tools
+- Canvas
+- AI
+- Development Workflow
+- Reflection
+- Portfolio
+- Skill Development
+- บริการอื่นตาม Package
+
+### 21.2 Training / Professional Services
+
+เช่น:
+
+- FA Training
+- Unlock Hidden Potential
+- NVC
+- Goal Setting
+- Design
+- On-site workshop
+- In-house
+- Public course
+- Coaching
+
+Training ต้องเชื่อมกับ Development Journey
+ไม่ควรกลายเป็นธุรกิจ Course แยกจาก Platform
+
+---
+
+## 22. Business Model Inspiration: Leader in Me
+
+**[REFERENCE — NOT REQUIREMENT]**
+
+ทีมเคยศึกษาธุรกิจ Leader in Me / 7 Habits เพื่อใช้เป็น Business Model Reference
+
+สิ่งที่น่าสนใจคือ: อย่าขายเฉพาะ Training ครั้งเดียว แต่สร้าง Relationship ต่อเนื่องกับโรงเรียน
+
+แนวคิด Funnel ที่เคยศึกษา:
+
+```
+Entry Workshop
+↓
+Implementation Program
+↓
+Annual Partnership
+↓
+Advanced Support
+```
+
+อย่างไรก็ตาม: **อย่า Copy Leader in Me ตรง ๆ**
+ใช้เพียงเป็น Reference เพื่อเข้าใจ Recurring Business Model
+
+---
+
+## 23. Recurring Value Principle
+
+**[DIRECTION]**
+
+Subscription / Annual Partnership ต้องมีเหตุผลให้ลูกค้ากลับมาใช้ต่อเนื่อง
+
+ไม่ควรเป็นเพียง Content Library ที่เปิดดูได้ตลอดปี
+
+Recurring Value ควรมาจากสิ่งเช่น:
+
+- Tools ใช้งานจริง
+- AI
+- Canvas
+- Reflection
+- Teacher Portfolio
+- Skill Tracking
+- Coach Clinic
+- New Practice
+- Continuous Development
+- School Insight
+- Implementation Support
+
+หลักสำคัญ:
+
+> **Recurring Revenue ต้องมี Recurring Value**
+
+---
+
+## 24. Coaching Economics
+
+**[DIRECTION]**
+
+Human Coaching มีต้นทุน ดังนั้นไม่ควรออกแบบ Package แบบ Unlimited Coaching โดยไม่คิด Unit Economics
+
+ระบบควรรองรับ Package ที่กำหนดขอบเขตได้ เช่น:
+
+- จำนวน Coaching Session
+- จำนวน Review
+- จำนวน Case
+- Coach Response SLA
+- Teacher / Coach Ratio
+- Monthly Clinic
+- Group Coaching
+- Premium 1:1
+
+Exact Model: **[OPEN]**
+
+แต่ **Architecture ไม่ควร Assume ว่า Coaching Unlimited**
+
+---
+
+## 25. Social Enterprise Model
+
+**[CANONICAL]**
+
+SkillWise เป็น Social Enterprise
+
+แต่: **Social Impact Mechanism ไม่จำเป็นต้อง Hard-code ลง Product**
+ทีมมีแนวทาง SE ของตนเองอยู่แล้ว
+
+จึงไม่ต้อง Assume ว่าระบบต้องมี:
+
+- Free seat
+- Subsidized seat
+- Donation
+- CSR dashboard
+- Sponsor module
+
+เว้นแต่ทีมจะสั่งเพิ่ม
+
+---
+
+## 26. Impact Data
+
+**[DIRECTION]**
+
+แม้ไม่สร้าง Social Impact Feature โดยเฉพาะ ข้อมูลที่เกิดจากการใช้งานจริงสามารถนำไปวิเคราะห์ Impact ในอนาคต เช่น:
+
+- จำนวนครู
+- จำนวนโรงเรียน
+- จำนวน Case
+- Teacher Skill Development
+- Student reach
+- Activities
+- Development Outcomes
+
+ดังนั้น **Data Architecture ไม่ควรปิดทางการทำ Impact Report ในอนาคต**
+
+---
+
+## 27. Free Layer
+
+**[DIRECTION]**
+
+SkillWise สามารถมี Public / Free Content เช่น:
+
+- Facilitation
+- Life Skills
+- Human Potential
+- Leadership
+- Teacher Development
+- 7 กิจวัตรกับการพัฒนาเยาวชน
+
+หน้าที่ของ Free Layer คือ:
+
+```
+Educate
+↓
+Build Trust
+↓
+Demonstrate Value
+↓
+Convert
+```
+
+**ไม่เท่ากับ Free Subscription**
+
+---
+
+## 28. Target Market
+
+**[DIRECTION]**
+
+ตลาดเริ่มต้นที่ทีมกำลังมอง: **โรงเรียนเอกชนที่มีงบประมาณสำหรับ Teacher Development**
+
+เหตุผลเชิงสมมติฐาน:
+
+- มี Budget
+- ตัดสินใจค่อนข้างเร็ว
+- สนใจ Differentiation
+- สนใจ Life Skills
+- Leadership
+- Future Skills
+- Teacher Capability
+
+แต่การกำหนด Segment รายละเอียดยังสามารถปรับได้
+
+---
+
+## 29. Buyer / User / Beneficiary
+
+**[CANONICAL PRODUCT PRINCIPLE]**
+
+ต้องแยก:
+
+- **Buyer** อาจเป็น: School Owner, Director, Academic Director, Organization
+- **User** หลักคือ: Teacher, Facilitator, Coach
+- **Beneficiary** หลักคือ: Student
+
+> **Buyer ≠ User ≠ Beneficiary**
+
+การออกแบบ UX / Dashboard / Marketing ต้องคำนึงถึงทั้งสามกลุ่ม
+
+---
+
+## 30. User Roles
+
+**[CONFIRMED DIRECTION]**
+
+### SkillWise Admin
+
+บริหาร Platform เช่น:
+
+- School
+- User
+- Coach
+- Subscription
+- Course
+- Payment
+- Configuration
+
+Exact Permission: **[OPEN]**
+
+### SkillWise Coach
+
+Account แยกจาก Admin ใช้สำหรับ:
+
+- ดู Case
+- Coach
+- Feedback
+- Review
+- Skill Assessment
+
+### School Executive / School Manager
+
+ควรเห็นข้อมูลระดับ Aggregate เช่น:
+
+- Participation
+- Active Teacher
+- Submission
+- Progress
+- Aggregate Skill Development
+
+### Teacher
+
+Primary User ใช้:
+
+- Tool
+- Canvas
+- Plan
+- Practice
+- Evidence
+- Reflection
+- Feedback
+- Course
+- Portfolio
+
+### Student
+
+ยังไม่ใช่ Core User ใน Phase 1
+Student System: **Phase 2**
+
+---
+
+## 31. Privacy & Psychological Safety
+
+**[CANONICAL]**
+
+Coach Feedback และ Teacher Reflection อาจเป็นพื้นที่ Sensitive
+
+หลักการ:
+
+> **ผู้บริหารโรงเรียนไม่ควรเห็น Private Coach Feedback ของครูโดย Default**
+
+เหตุผล: ถ้าครูรู้ว่าผู้บริหารอ่าน Feedback ทุกอย่างได้ ครูอาจไม่กล้านำ Case ที่ยังทำได้ไม่ดีมาขอ Coaching ซึ่งสวนทางกับเป้าหมายการพัฒนา
+
+ดังนั้นต้องแยก:
+
+> **Development Data** กับ **Management Data**
+
+---
+
+## 32. Position ≠ Permission
+
+**[DIRECTION]**
+
+บุคลากรในโรงเรียนอาจมีตำแหน่ง:
+
+- Teacher
+- Head Teacher
+- Academic Head
+- Vice Director
+- Director
+- Owner
+- Coordinator
+- Staff
+
+แต่: **Job Position ไม่ควร Hard-code System Permission**
+
+Permission อาจเป็น:
+
+- Manage members
+- Manage seats
+- Manage classroom
+- View aggregate dashboard
+- Register course
+- Billing
+
+---
+
+## 33. Organization Model
+
+**[DIRECTION]**
+
+ควรแยก **User Identity** ออกจาก **Organization Membership**
+
+เพื่อรองรับ:
+
+- ครูสมัครเอง
+- ครูย้ายโรงเรียน
+- ครูสังกัดโรงเรียนภายหลัง
+- ผู้ใช้มีหลาย Role
+- Coach
+- Multiple Organization ในอนาคต
+
+---
+
+## 34. Independent Teacher
+
+**[CONFIRMED DIRECTION]**
+
+ครูสามารถมี Account แบบ Independent ได้ ไม่จำเป็นต้องสังกัด School ตั้งแต่แรก
+
+ถ้าภายหลังโรงเรียนซื้อ Seat ให้:
+
+- Account เดิมควรอยู่
+- Learning History ไม่ควรหาย
+- Portfolio ไม่ควรหาย
+- Canvas เดิมไม่ควรหาย
+
+Data Ownership Policy: **[OPEN]** โดยเฉพาะเมื่อครูย้ายโรงเรียน
+
+---
+
+## 35. School Structure
+
+**[CONFIRMED DIRECTION]**
+
+โครงสร้างเบื้องต้น:
+
+```
+School
+↓
+Level / Grade
+↓
+Classroom
+↓
+Group
+```
+
+แต่ระบบควร Flexible ไม่ควร Hard-code เฉพาะ:
+
+- ป.1
+- ม.1
+- รูปแบบโรงเรียนไทย
+
+เพราะอนาคตอาจใช้กับ Organization อื่น
+
+---
+
+## 36. Subscription Model
+
+**[CONFIRMED DIRECTION]**
+
+แนวคิดปัจจุบัน:
+
+- **B2B:** โรงเรียนซื้อ Seat → Assign ให้ Teacher
+- **B2C:** Teacher สมัครและจ่ายเอง
+
+รายละเอียดต่อไปนี้: **[OPEN]**
+
+- Monthly / Annual
+- Pricing
+- Packages
+- Feature limit
+- AI quota
+- Coaching quota
+- Storage
+- Trial
+- Seat transfer
+- Grace period
+- Upgrade / Downgrade
+- Cancellation
+
+---
+
+## 37. Course / Training Registration
+
+**[CONFIRMED DIRECTION]**
+
+ระบบควรรองรับ:
+
+- Individual registration
+- School registers multiple teachers
+
+Possible Course Type:
+
+- Public
+- In-house
+- On-site
+- Online
+- Hybrid
+
+แต่: **Exact Scope Phase 1 = OPEN**
+
+---
+
+## 38. Existing Course Assets
+
+**[CANONICAL AS IP / NOT FINAL PACKAGE]**
+
+องค์ความรู้เดิมมี เช่น:
+
+- Unlock Hidden Potential
+- FA
+- NVC
+- Goal Setting
+- Design Thinking
+- Habit Development
+- Super FA
+- Unlock Hidden Potential Camp
+
+ระยะเวลาหรือ Package Commercial ใหม่สามารถเปลี่ยนได้
+
+---
+
+## 39. Payment
+
+**[CONFIRMED DIRECTION]**
+
+มีเงินสองกลุ่มหลัก:
+
+- **Subscription** — Recurring payment / renewal
+- **Course** — One-time payment
+
+แนวทางช่องทาง:
+
+- Payment Gateway
+- Card
+- PromptPay
+- Bank Transfer
+- Upload Slip
+- Invoice
+
+Exact Provider: **[OPEN]**
+
+---
+
+## 40. B2B Billing
+
+**[DIRECTION]**
+
+โรงเรียนอาจมี Flow:
+
+```
+Quotation
+↓
+Approval / PO
+↓
+Invoice
+↓
+Payment
+↓
+Verification
+↓
+Activation
+```
+
+ระบบควรออกแบบ **Payment / Billing แยกจาก Product Entitlement**
+
+---
+
+## 41. Receipt / Tax Invoice
+
+**[DIRECTION]**
+
+เพราะลูกค้าเป็นองค์กร / โรงเรียน ควรเผื่อ:
+
+- Organization billing name
+- Tax ID
+- Billing address
+- Receipt
+- Tax invoice
+
+Exact Accounting Workflow: **[OPEN]**
+
+---
+
+## 42. Entitlement
+
+**[SYSTEM PRINCIPLE]**
+
+อย่าผูก Access กับ Payment Status แบบ Hard-code กระจัดกระจายในระบบ
+
+ควรมี Concept: **Entitlement / Access**
+
+เพื่อรองรับ:
+
+- Subscription
+- School seat
+- Individual plan
+- Course bundle
+- Trial
+- Promotion
+- Manual grant
+
+ในอนาคต
+
+---
+
+## 43. Dashboard
+
+**[DIRECTION]**
+
+### Teacher Dashboard
+
+เช่น:
+
+- Current practice
+- Canvas
+- Case
+- Plan
+- Reflection
+- Feedback
+- Skill Progress
+- Course
+
+### Coach Dashboard
+
+เช่น:
+
+- Assigned Teacher
+- Pending Review
+- Cases
+- Feedback
+- Skill Progress
+
+### School Dashboard
+
+Aggregate:
+
+- Active teachers
+- Participation
+- Usage
+- Submission
+- Skill development
+
+### Admin Dashboard
+
+เช่น:
+
+- Customer
+- Subscription
+- Revenue
+- Course
+- User
+- Usage
+- Coach workload
+
+---
+
+## 44. Student — Phase 2
+
+**[CONFIRMED]**
+
+Student User ยังไม่ทำเต็มรูปแบบใน Phase 1
+
+Phase 2 อาจมี:
+
+- Student account
+- Reflection
+- Evidence
+- Portfolio
+- Practice
+- Challenge
+- Feedback
+- Opportunity
+
+แต่ **Phase 1 ควรออกแบบ Domain ไม่ให้ปิดทาง**
+
+---
+
+## 45. Tool Architecture
+
+**[CANONICAL PRODUCT PRINCIPLE]**
+
+Unlock Hidden Potential Canvas เป็น Core Tool ปัจจุบัน
+
+แต่: **SkillWise Platform ต้องไม่ Hard-code ว่ามี Tool เพียงตัวเดียว** อนาคตอาจเพิ่ม Tool อื่น
+
+Claude: **ห้ามคิด Tool ใหม่แล้วถือเป็น Requirement โดยไม่ได้รับการยืนยัน**
+
+---
+
+## 46. Domain Architecture
+
+**[SYSTEM DIRECTION]**
+
+ก่อนเลือก Database Schema ให้คิดจาก Business Domain
+
+อย่างน้อยควรพิจารณา Domain เช่น:
+
+- Identity
+- Organization
+- Membership
+- Position
+- Role
+- Permission
+- Subscription
+- Entitlement
+- Billing
+- Payment
+- Course
+- Enrollment
+- Tool
+- Case
+- Canvas
+- Plan
+- Activity
+- Practice
+- Evidence
+- Reflection
+- Feedback
+- Coach Assignment
+- Skill
+- Competency
+- Assessment
+- Portfolio
+- AI
+- Notification
+- Reporting
+
+**อย่าออกแบบ Database ตามหน้า UI อย่างเดียว**
+
+---
+
+## 47. Modular Design Principle
+
+**[SYSTEM DIRECTION]**
+
+SkillWise มีโอกาสขยาย Product มาก Architecture จึงควรแยก Module
+
+หลีกเลี่ยง:
+
+- One giant teacher table
+- One giant school table
+- Permission ผ่าน boolean จำนวนมาก
+- Payment logic กระจายไปทั่วระบบ
+- Hard-code Tool Type
+- Hard-code Thai School Structure
+- Hard-code Subscription Package
+
+---
+
+## 48. Phase 1 Product Loop
+
+**[DIRECTION]**
+
+MVP / Phase 1 ควรทำให้วงจรนี้เกิดได้ก่อน:
+
+```
+User / Organization
+↓
+Access / Entitlement
+↓
+Teacher uses Tool
+↓
+Situation / Case
+↓
+Canvas
+↓
+Plan
+↓
+Practice
+↓
+Evidence / Reflection
+↓
+Coach Feedback
+↓
+Teacher improves
+↓
+School sees Aggregate
+```
+
+สิ่งที่อยู่นอก Loop นี้ควรพิจารณาความสำคัญก่อนเพิ่มเข้า MVP
+
+---
+
+## 49. Product Principle: Recurring Development
+
+SkillWise ไม่ควรเป็น:
+
+> "เข้าอบรม 2 วัน แล้วจบ"
+
+และไม่ควรเป็น:
+
+> "สมัคร Software แล้วกรอก Form"
+
+แต่ควรสร้าง **Continuous Professional Development**
+ผ่าน **Tool + Practice + Reflection + Coaching + Repetition**
+
+---
+
+## 50. สิ่งที่ยัง OPEN
+
+Claude ห้ามถือว่า Final:
+
+1. Final Pricing
+2. Monthly / Annual
+3. Subscription Package
+4. Trial
+5. AI Quota
+6. Coaching Quota
+7. Exact Coaching Model
+8. Teacher / Coach Ratio
+9. Seat Transfer
+10. Data Ownership
+11. Exact School Positions
+12. Exact Permission Matrix
+13. Exact Submission Types
+14. Coach Assignment Logic
+15. Course Package
+16. Public vs In-house scope
+17. Course + Subscription Bundle
+18. Certificate
+19. Tax Invoice Workflow
+20. Payment Gateway
+21. Refund
+22. Cancellation
+23. ~~Tech Stack~~ — TypeScript + Next.js (หน้าบ้าน) + NestJS (หลังบ้าน) ตัดสินแล้ว ดูข้อ 60.5
+24. Database — แนวทาง PostgreSQL [DIRECTION] ดูข้อ 60.5
+25. Hosting
+26. Cloud Provider
+27. Storage
+28. AI Provider
+29. AI Model
+30. Exact Phase 1 Feature List
+
+---
+
+## 51. Tech Stack
+
+**[CONFIRMED — 24 Oct 2026]** ภาษา TypeScript และสถาปัตยกรรม Next.js (หน้าบ้าน) + NestJS (หลังบ้าน) ตัดสินแล้ว ส่วนประกอบย่อยเป็น DIRECTION ดูข้อ 60.5
+
+ส่วนที่ยัง OPEN (Hosting, Cloud Provider, AI Provider, Payment Gateway) ก่อนเลือกให้:
+
+1. Inspect repository ปัจจุบันก่อน
+2. ดูว่ามี Code / Config / Architecture เดิมหรือไม่
+3. ดู Deployment Requirement
+4. ดู Team Skill
+5. ดู Budget
+6. ดู AI Integration Requirement
+7. ดู Payment Requirement
+8. ดู Scale ที่ต้องรองรับ
+
+แล้วค่อยเสนอทางเลือกให้ทีมตัดสิน
+
+---
+
+## 52. Working Rule สำหรับ Claude Code
+
+เมื่อผู้ใช้สั่ง Feature:
+
+- **Rule 1** — ตรวจ Canonical Context ก่อน
+- **Rule 2** — อย่าขยาย Scope เอง
+- **Rule 3** — อย่าเปลี่ยน Business Rule เพราะคิดว่า "น่าจะดีกว่า"
+- **Rule 4** — ถ้าเป็นเรื่อง OPEN: ใช้ Flexible Architecture แต่อย่า Hard-code Decision
+- **Rule 5** — หากมี Existing Code: Inspect ก่อนแก้
+- **Rule 6** — อย่าสร้าง Database Migration ขนาดใหญ่โดยไม่ดู Domain Impact
+- **Rule 7** — Privacy / Data Ownership / Billing ต้องระวังเป็นพิเศษ
+
+---
+
+## 53. Things Claude Must NOT Do
+
+ห้าม:
+
+- เปลี่ยน SkillWise เป็น LMS ธรรมดา
+- ทำ Course Catalog เป็น Home ของ Product โดยอัตโนมัติ
+- ทำ Canvas เป็น Form กรอกแล้วจบ
+- ให้ AI ตัดสินเด็กแทนครู
+- สร้าง Teacher Ranking โดยไม่มี Requirement
+- เปลี่ยน Coaching เป็น Performance Evaluation
+- เปิด Private Coach Feedback ให้ผู้บริหาร
+- Hard-code 7 กิจวัตร
+- Hard-code Sila5 เป็น Brand
+- Hard-code Thai School Structure
+- Assume Teacher ต้องมี School
+- Assume School owns all teacher history
+- ผูก Permission กับ Position
+- Assume Coaching Unlimited
+- Assume Subscription = Content Library
+- Copy Leader in Me โดยตรง
+- สร้าง Social Impact Module เอง
+- สร้าง Tool ใหม่เอง
+- เลือก Tech Stack ก่อน Inspect Existing Project
+
+---
+
+## 54. Separation ที่ต้องรักษา
+
+| ฝั่งหนึ่ง | ≠ | อีกฝั่ง |
+|---|---|---|
+| Teacher Development | ≠ | Teacher Performance Evaluation |
+| Private Coach Feedback | ≠ | Management Reporting |
+| Job Position | ≠ | System Permission |
+| User Identity | ≠ | Organization Membership |
+| Subscription Payment | ≠ | Product Entitlement |
+| Canvas | ≠ | Platform |
+| AI Suggestion | ≠ | Teacher Decision |
+| Training | ≠ | Development Journey |
+| 7 กิจวัตร | ≠ | SkillWise Brand |
+| Social Enterprise | ≠ | Free Product |
+
+---
+
+## 55. Current Business Hypothesis
+
+**[DIRECTION — NOT FINAL BUSINESS PLAN]**
+
+ภาพธุรกิจที่กำลังพัฒนาคือ:
+
+```
+Free Knowledge / Awareness
+↓
+Entry Training / Workshop
+↓
+Platform Subscription
+↓
+Practice + AI Tools
+↓
+Reflection
+↓
+Coaching / Professional Support
+↓
+Skill Development
+↓
+School Partnership / Renewal
+```
+
+โมเดลนี้ได้ Inspiration บางส่วนจากการศึกษาธุรกิจเช่น Leader in Me
+แต่ SkillWise ต้องสร้าง Model ของตนเอง
+
+---
+
+## 56. Core Competitive Asset
+
+SkillWise ไม่ควรแข่งขันเพียงด้วย Feature Software
+
+Potential Competitive Assets คือ:
+
+- FA Framework
+- FA Competency
+- Unlock Hidden Potential
+- Canvas
+- Real Case Method
+- Practice Loop
+- Coaching Method
+- Reflection
+- Character Development System
+- 7 กิจวัตร
+- Teacher Development IP
+- Existing School Network
+- Knowledge from Sila5School
+- AI-assisted Development Workflow
+
+**Software เป็นเครื่องมือ Scale Intellectual Property เหล่านี้**
+
+---
+
+## 57. Core Strategic Principle
+
+อย่าเริ่มจากคำถามว่า
+
+> "เราจะสร้าง Software Feature อะไร"
+
+ให้เริ่มจาก:
+
+> "เราต้องทำอย่างไรให้ครูเก่ง FA ขึ้นจากสถานการณ์จริง และทำให้การพัฒนานั้นเกิดซ้ำได้อย่างต่อเนื่อง?"
+
+จากนั้นจึงค่อยออกแบบ:
+
+- Tool
+- Workflow
+- AI
+- Data
+- Coaching
+- Subscription
+- Dashboard
+
+---
+
+## 58. Final Canonical Summary
+
+Claude Code ควรจำ 10 ข้อนี้:
+
+1. FA Development คือแกนหลักของ SkillWise
+2. เป้าหมายปลายทางคือช่วยครู Unlock Student Potential
+3. Skill Development ต้องเกิดผ่าน Real Practice
+4. Canvas เป็น Thinking Tool ไม่ใช่ Product ทั้งหมด
+5. AI เป็น Assistant ไม่ใช่ Decision Maker
+6. Reflection + Coaching + Practice Again เป็น Core Loop
+7. School Management Data ต้องแยกจาก Private Development Data
+8. Subscription ต้องสร้าง Recurring Value
+9. Human Coaching ต้องคิด Unit Economics
+10. SkillWise คือการนำ IP และประสบการณ์จากงานเดิมมาสร้างเป็น Professional, Scalable, Commercial Teacher Development Platform
+
+---
+
+## 59. Instruction เมื่อเริ่มทำงานใน Repository
+
+ก่อนเริ่ม Implement Feature ใหม่:
+
+1. อ่านไฟล์ Context นี้ก่อน
+2. Inspect repository ที่เปิดอยู่ (ไม่ผูกกับ path ใด ๆ เพราะทีมทำงานหลายเครื่อง)
+3. สรุป Existing Architecture ให้สั้น ๆ
+4. ระบุว่า Requirement ที่ได้รับแตะ Domain ไหนบ้าง
+5. ตรวจว่ามี Conflict กับ Canonical Context หรือไม่
+6. ถ้าไม่มี Conflict ให้ทำต่อ
+7. ถ้ามี Conflict ให้แจ้งก่อนเปลี่ยน Business Rule
+8. อย่าแก้ไฟล์ที่ไม่เกี่ยวข้อง
+9. รักษา Backward Compatibility เท่าที่สมเหตุสมผล
+10. หลังแก้ ให้สรุป:
+    - สิ่งที่เปลี่ยน
+    - Business Rule ที่ใช้
+    - File ที่แก้
+    - Migration / Config ที่ต้องทำ
+    - Open Issue ที่ยังเหลือ
+
+---
+
+## 60. Decision Log (หลัง Context version 8 Oct 2026)
+
+**[CONFIRMED]** 8 Oct 2026 จากการคุยกับ Claude Code
+
+### 60.1 โค้ดของ Sila5School
+
+- **ไม่นำโค้ดของ Sila5School มาใช้** เพราะเป็น framework ที่ทีมเขียนขึ้นเอง
+- นำมาเฉพาะ**แนวคิดและการออกแบบระบบ**ตามข้อ 10
+- ศึกษาโค้ดเดิมเพื่อทำความเข้าใจแนวคิดได้ แต่ห้าม copy
+
+### 60.2 ข้อมูลนักเรียนใน Phase 1
+
+- นักเรียนยังไม่มี account ใน Phase 1 (ข้อ 44) แต่ครูบันทึกข้อมูลนักเรียนเพื่อใช้กับ Canvas ได้ (ข้อ 13)
+- ข้อมูลที่เก็บโดยประมาณ: **ชื่อ นามสกุล ชั้นปี ห้องเรียน**
+- รายการ field สุดท้าย: **[OPEN]**
+- ข้อมูลนี้เป็นข้อมูลส่วนบุคคลของผู้เยาว์ จึงต้องระวังเป็นพิเศษตาม Rule 7 และ PDPA
+- **สิทธิ์การเห็นข้อมูลนักเรียน:** เห็นได้เฉพาะบุคลากรในโรงเรียนนั้น และโค้ชที่ดูแล case ที่เกี่ยวกับนักเรียนคนนั้น *(แก้เพิ่มโดยข้อ 60.7: แอดมิน SkillWise ที่มีสิทธิ์เฉพาะก็ดูได้ และระบบบันทึกทุกครั้ง)*
+- **ข้อมูลนักเรียนกับ AI:** ก่อนส่งข้อมูลให้ AI วิเคราะห์ ระบบต้องตัดชื่อและนามสกุลจริงออกทุกครั้ง แล้วใช้รหัสแทน (pseudonymize) เพื่อไม่ให้ข้อมูลระบุตัวเด็กออกไปนอกระบบ และเมื่อได้ผลลัพธ์กลับมา ระบบค่อยแปลงรหัสกลับเป็นชื่อเพื่อแสดงให้ครูเห็น
+
+### 60.3 การแชร์ข้อมูลให้ผู้บริหาร (ขยายความข้อ 31)
+
+- **Default:** ผู้บริหารไม่เห็น Private Coach Feedback และ Teacher Reflection
+- **ครูเลือกแชร์บางชิ้นให้ผู้บริหารเห็นได้เอง** (opt-in เป็นรายชิ้น)
+- ขอบเขตการแชร์ เช่น แชร์อะไรได้บ้าง และยกเลิกการแชร์ได้ไหม: **[OPEN]**
+
+### 60.4 ขอบเขตของสิ่งที่ได้จาก Sila5School
+
+- Sila5School **ไม่ได้มีทุกอย่าง**ที่ SkillWise จะทำ หลายส่วนต้องออกแบบใหม่ทั้งหมด เช่น Coaching, FA Competency/Rubric และ Subscription/Billing
+- รายละเอียดของ Rubric 5 ระดับในแต่ละ FA Competency (ข้อ 18): **[OPEN]**
+- บันทึกการศึกษาระบบเดิมอยู่ที่ `docs/sila5school-study.md`
+
+### 60.5 Tech Stack (แก้ไข 24 Oct 2026)
+
+- **ภาษา: TypeScript ทั้งระบบ** [CONFIRMED] เหตุผล: เลือกภาษาที่ Claude เขียน เทส และรีวิวได้ดีที่สุด ใช้ภาษาเดียวทั้งหน้าเว็บ หลังบ้าน และเทสต์
+  - ข้อนี้**แก้ (override) Laravel** ที่เคยตกลงไว้ (เดิมเลือกเพราะทีมถนัด PHP)
+- หลักการเลือก (จากประชุมครั้งที่ 1): ทีมให้ Claude เลือก **ตัวที่เขียน รีวิว และเทสได้ดี ราบรื่น และปลอดภัยที่สุด** แทนหลักการเดิม "ตัวที่ทีมถนัด"
+
+#### สถาปัตยกรรม: แยกหน้าบ้านกับหลังบ้าน
+
+**[CONFIRMED — 24 Oct 2026]** หน้าบ้าน **React (Next.js)** + หลังบ้าน **NestJS** อยู่ใน monorepo เดียว
+แทนแผนเดิมที่ให้ Next.js ตัวเดียวทำทั้งหน้าบ้านและหลังบ้าน
+
+```
+skillwise/  (monorepo: pnpm + Turborepo)
+├─ apps/web          Next.js (React) — หน้าบ้านอย่างเดียว · SSR ให้หน้าสาธารณะติด SEO
+├─ apps/api          NestJS — business logic, สิทธิ์, DB, AI, LINE webhook, งานเบื้องหลัง, PDF
+└─ packages/shared   Zod schema + type ที่ใช้ร่วมกันทั้งสองฝั่ง
+```
+
+เหตุผลที่ไม่ใช้ Next.js ตัวเดียว:
+
+1. **SkillWise หนักที่หลังบ้าน** มีทั้งสิทธิ์หลายระดับ, Entitlement, Billing, AI, LINE, งานตั้งเวลา, audit log และการตัดชื่อเด็กก่อนส่ง AI (ข้อ 60.2) NestJS แบ่ง module ตาม domain ได้ตรงกับข้อ 46–47
+2. **มีหลายช่องทางที่เรียกระบบเดียวกัน** คือเว็บ, LINE bot (ข้อ 60.10.6), หลังบ้านแบบแชท (ข้อ 60.10.7), แอปนักเรียน Phase 2 (ข้อ 44) และงานเบื้องหลัง ทุกช่องทางเรียก API ชุดเดียว กฎจึงอยู่ที่เดียว
+3. **ปลอดภัยกว่า** ตรวจสิทธิ์รวมศูนย์ที่ guard ของ NestJS ทุก endpoint ส่วนหน้าบ้านไม่แตะฐานข้อมูล ถ้า Next.js มีช่องโหว่ ก็ไม่ถึงข้อมูลโดยตรง
+4. **งานที่ใช้เวลานานรันได้เป็นธรรมชาติ** เช่น AI ทำแผนหลายนาที หรือเตือนผ่าน LINE ตามเวลา NestJS มี queue และ scheduler ในตัว
+5. **AI เขียน รีวิว และเทสได้คงเส้นคงวา** เพราะ NestJS มีรูปแบบตายตัว (module / controller / service / guard) และ DI ทำให้เทสง่าย ข้อนี้สำคัญเพราะจะมี AI หลายรอบหลายแชทเขียนโค้ดต่อกัน
+6. แนวคิดของ NestJS ใกล้กับ Laravel (controller, service, middleware, DI) คนที่มาจาก PHP อ่านเข้าใจง่าย
+
+ข้อแลกเปลี่ยนที่ยอมรับ:
+
+- มี 2 แอปต้อง deploy และดูแล และ boilerplate มากขึ้น
+- ต้องคุม type ทั้งสองฝั่งให้ตรงกัน แก้ด้วย `packages/shared`
+- login ข้ามแอปต้องให้ web กับ api อยู่โดเมนเดียวกัน (ใช้ reverse proxy) เพื่อใช้ httpOnly cookie ได้และเลี่ยงปัญหา CORS / CSRF
+- ต้องมี Redis เพิ่มถ้าใช้ BullMQ
+
+**[SYSTEM PRINCIPLE]** กฎการแบ่งหน้าที่:
+
+- `apps/web` **ไม่เชื่อมฐานข้อมูล และไม่มี business logic** ข้อมูลทุกอย่างได้มาจาก API
+- ทุก endpoint ของ `apps/api` ต้องประกาศสิทธิ์ที่ต้องใช้ และตรวจด้วย guard · ค่าเริ่มต้นคือปฏิเสธ
+- ช่องทางอื่นทั้งหมด (LINE webhook, งาน AI, หลังบ้านแบบแชท, แอปนักเรียนในอนาคต) ต้องผ่าน API และกฎสิทธิ์ชุดเดียวกัน
+- schema สำหรับตรวจข้อมูลอยู่ใน `packages/shared` ทั้งสองฝั่งใช้ตัวเดียวกัน
+
+#### ส่วนประกอบ
+
+**[DIRECTION]** ปรับได้ระหว่างออกแบบ:
+
+- หน้าบ้าน: Next.js (App Router) + React + Tailwind + shadcn/ui
+- หลังบ้านแอดมินและโค้ช: หน้าเว็บใน `apps/web` ด้วย shadcn/ui + TanStack Table ข้อมูลผ่าน API
+- API: NestJS
+- ฐานข้อมูล: PostgreSQL + Prisma (ใช้ใน `apps/api` เท่านั้น)
+- ตรวจข้อมูลขาเข้า: Zod
+- งานเบื้องหลังและตั้งเวลา: BullMQ + Redis (`@nestjs/bullmq`) + `@nestjs/schedule` · ถ้าไม่อยากเพิ่ม Redis ใช้ pg-boss แทนได้ แต่ต้องเขียนเชื่อมกับ NestJS เอง
+- Login: ทำใน NestJS (Passport: Google, LINE) เก็บ session ใน httpOnly cookie
+- ไฟล์: Cloudflare R2 (ผ่าน S3 API)
+- PDF: แปลง HTML เป็น PDF ด้วย Playwright ฝั่ง API (Chromium จัดสระและวรรณยุกต์ภาษาไทยถูกต้อง)
+- Test: Vitest (unit/integration) + Supertest (API) + Playwright (E2E)
+- คุณภาพโค้ด: TypeScript strict + ESLint + Prettier + CI รัน typecheck, lint และเทสต์ทุกครั้งก่อน merge
+
+ผลจากการเปลี่ยน:
+
+- ทีมต้องเรียน TypeScript, React และ NestJS เพื่อดูแลโค้ดต่อ
+- ไม่มีเครื่องมือหลังบ้านสำเร็จรูปแบบ Filament ต้องเขียนหน้าแอดมินเอง
+
+ยังเป็น **[OPEN]**: AI Provider, Payment Gateway, Hosting · Hosting ต้องรัน Node แบบทำงานตลอดได้ (API + worker + Redis) ไม่ใช่ serverless อย่างเดียว
+
+#### กฎความปลอดภัย
+
+**[SYSTEM PRINCIPLE]**
+
+- อัปเดต Next.js / React / NestJS / dependency ทันทีเมื่อมี security advisory อย่าค้างเวอร์ชันเก่า (Next.js เคยมีช่องโหว่ร้ายแรงที่ข้ามการตรวจสิทธิ์ผ่าน middleware ได้ ในปี 2025)
+- **ห้ามพึ่ง middleware ของหน้าบ้านในการตรวจสิทธิ์** สิทธิ์ตรวจที่ API เสมอ หน้าบ้านซ่อนหรือแสดงเมนูได้ แต่ไม่ถือเป็นการกันสิทธิ์
+- secret และ API key อยู่ฝั่ง API หรือ server เท่านั้น ห้ามอยู่ใน bundle ของหน้าบ้าน
+- เปิด dependency audit อัตโนมัติ (เช่น Dependabot หรือ Renovate)
+
+#### Repository ที่เริ่มไว้แล้ว
+
+- ถ้า repository มีโค้ดที่เริ่มไว้ตามแผนเก่า (Laravel หรือ Next.js ตัวเดียว) ให้ inspect แล้วสรุปขอบเขตการย้ายให้ทีมก่อน **อย่าลบหรือแปลงเงียบ ๆ**
+- เอกสารใน `docs/` ยังใช้ได้ในระดับแนวคิด แต่ส่วนที่อ้าง Laravel / Livewire / Filament / MySQL / Auth.js / pg-boss ต้องปรับตามข้อนี้
+
+### 60.6 ลำดับการทำงาน
+
+- ยังไม่ทำเอกสารสรุประบบทั้งหมด ให้**วางแผนก่อน** ดูแผนที่ `docs/roadmap.md`
+- ข้อเสนอของ Claude ที่รอทีมตัดสินใจ เก็บไว้ที่ `docs/proposals.md` และยังไม่ถือเป็นข้อตกลง
+
+### 60.7 หน้าแอดมินและระดับสิทธิ์ของแอดมิน (11 Oct 2026)
+
+- **หน้าแอดมินเป็นหน้า UX สำหรับดูข้อมูลได้ทุกอย่างในระบบ** ค้นหาและไล่ดูข้อมูลต่อกันได้ เช่น โรงเรียน → ครู → Canvas → แผน → บันทึก → feedback และแก้ไขได้ตามสิทธิ์
+- **ระดับสิทธิ์ของแอดมินเป็นแบบ "บทบาทตามหน้าที่"** (role) แต่ละบทบาทประกอบด้วยสิทธิ์ที่ตั้งชื่อชัดเจน และปรับได้ในหน้าแอดมิน ไม่ใช้ตัวเลขระดับ 1–9 แบบ Sila5School
+- **ข้อมูลอ่อนไหวดูได้เฉพาะแอดมินที่มีสิทธิ์นั้น** ได้แก่ ชื่อนักเรียน, reflection ของครู และเนื้อหา feedback ของโค้ช **และระบบบันทึกทุกครั้งที่เปิดดู** (ใคร ดูอะไร เมื่อไร)
+  - ข้อนี้**แก้ (override) ข้อ 60.2** ซึ่งเดิมไม่รวมแอดมินไว้
+  - **ข้อ 31 ยังคงเดิม** ผู้บริหารโรงเรียนไม่เห็น Private Coach Feedback ข้อนี้เกี่ยวกับแอดมินของ SkillWise เท่านั้น
+- รายชื่อบทบาทและสิทธิ์ในแต่ละบทบาท: **[DIRECTION]** มีร่างใน `docs/plan-phase1.md`
+
+### 60.8 รูปแบบการซื้อ Subscription (18 Oct 2026)
+
+**[CONFIRMED]** ขยายความข้อ 36 ระยะแรกคิดเงิน **รายคน (per seat)** ซื้อได้ 3 แบบ:
+
+| แบบ | รายละเอียด |
+|---|---|
+| **รายคน** | ครู 1 คนซื้อสิทธิ์ให้ตัวเอง |
+| **Set Package** | ซื้อเป็นชุด **10, 20 หรือ 30 คน** แล้วแจก seat ให้ครูแต่ละคนได้ |
+| **B2B ราคาตามตกลง** | โรงเรียนหรือองค์กรคุยราคากันเป็นรายกรณี (ทำตามขั้นตอนในข้อ 40) |
+
+- ไอเดีย "ราคาตามขอบเขต ห้อง/ชั้น/โรงเรียน" จากประชุมครั้งที่ 1 **ยังไม่ใช้ในระยะแรก**
+- ยังเป็น **[OPEN]**:
+  - ราคาของแต่ละแบบ
+  - ใครซื้อ Set Package ได้ (ครูรายคนหรือเฉพาะโรงเรียน)
+  - ดึง seat คืนหรือย้ายให้ครูคนอื่นได้ไหม (ข้อ 36: seat transfer)
+  - อายุของ seat (รายเดือนหรือรายปี)
+
+---
+
+### 60.9 Brand Architecture และ SkillWise FA Differentiation (24 Oct 2026)
+
+**[CONFIRMED]**
+
+1. **SkillWise ในระดับ Brand / Company** เป็น Human Growth Ecosystem ผ่าน **Courses + Tools + Platform**
+2. แกนการพัฒนาหลักของ Brand คือ:
+   - พัฒนานิสัย
+   - ปลดล็อกศักยภาพ
+   - ยกระดับจิตใจ
+3. เป้าหมายคือ **พัฒนาผู้คนให้เติบโต และร่วมสร้างสังคมที่ดีกว่าเดิม**
+4. Tagline ที่ยืนยันแล้วคือ **“Growing People, Brighter Society.”**
+5. **SkillWise Education / School Product** ยังคงมี **FA Development** เป็น Core Capability
+6. จุดแตกต่างของ **SkillWise FA** คือ **FA for Human Growth** โดยเน้น Habit Development + Unlock Human Potential ไม่ใช่ Facilitator ทั่วไป
+7. **Sila5School และ SkillWise ต้องเดินคู่ขนานโดยไม่ซ้อนทับกัน**
+   - Sila5School ชู **7 กิจวัตรความดี** และใช้ FA เป็นกลไก Delivery
+   - SkillWise ชู **FA for Human Growth** โดยใช้ Unlock Hidden Potential / Canvas เป็น Framework & Tool และ 7 กิจวัตรเป็นหนึ่งใน Practice Assets
+8. ทั้งสองแบรนด์สามารถใช้ IP และองค์ความรู้ร่วมกันได้ แต่ต้องมี Entry Message และ Positioning ต่างกัน
+
+---
+
+### 60.10 ประชุม SE ครั้งที่ 1 — สรุปเรื่องระบบ (24 Oct 2026)
+
+ที่มา: ถอดจากไฟล์เสียงประชุมครั้งที่ 1 แล้วทีมยืนยันเพิ่มในวันเดียวกัน
+ป้ายในข้อนี้ใช้ความหมายตามข้อ 0 **ตัวเลขทุกตัวเป็นค่าที่พูดในประชุม ไม่ใช่ค่าที่ตัดสินแล้ว** เว้นแต่ติดป้าย [CONFIRMED]
+เรื่อง Tech Stack ที่คุยในประชุมนี้ บันทึกไว้ในข้อ 60.5 แล้ว
+
+#### 60.10.1 SkillWise กับ Sila5School
+
+**[CONFIRMED]**
+
+- SkillWise ใช้องค์ความรู้และประสบการณ์จาก Sila5School เป็นต้นทุน แล้ว**คิดแบบธุรกิจและแบบ Product ได้เต็มที่** ไม่ต้องติดข้อจำกัดเดิมของ Sila5School (ทรัพยากรจำกัด และไม่ได้ทำเชิงธุรกิจ)
+- สิ่งที่ทำใน SkillWise แล้วได้ผล **ส่งกลับไปใช้ที่ Sila5School ได้**
+- SkillWise เป็นพื้นที่ทดลองการพัฒนาระบบด้วย AI เต็มรูปแบบ
+- ระบบหลังบ้านเดิมของ Sila5School (framework เฉพาะของทีมเดิม เขียนด้วย PHP) **ไม่นำมาใช้** สอดคล้องกับข้อ 60.1
+
+#### 60.10.2 สินค้าและบริการของ SkillWise
+
+**[CONFIRMED]** ทุกรายการในตารางเป็นของ **SkillWise** และอยู่ใต้ Courses + Tools + Platform (ข้อ 1.1)
+**[OPEN]** รายการไหนเข้า Phase 1 · ชื่อสินค้า · ราคา
+
+หลักคิดของทีม:
+
+- วาดภาพระยะยาวก่อน แล้ว**หั่นส่วนที่ขายง่ายออกมาทำก่อน** อย่าเริ่มจากของที่ซับซ้อน
+- ผสมสินค้าดิจิทัลกับ**สินค้าที่จับต้องได้**
+- คุณค่าไม่ได้อยู่ที่แพลตฟอร์มอย่างเดียว แต่อยู่ที่เกม คอนเซ็ปต์การอบรม และหลักสูตรด้วย (ข้อ 56)
+
+| สินค้า / บริการ | รายละเอียดจากประชุม |
+|---|---|
+| **การ์ดเกม / บอร์ดเกม (เซ็ตเกม)** | สินค้าจับต้องได้ เล่นออฟไลน์แล้ว**กลับมาบันทึกผลบนแพลตฟอร์ม** · ทดลองกับผู้ใช้แล้วผลตอบรับดีมาก เพราะรูปแบบเกมทำให้ไม่เครียด แนวเดียวกับเกม Cashflow · กล่องและแพ็กเกจยังไม่เสร็จ |
+| **คอร์ส** | ดูข้อ 60.10.3 |
+| **สื่อพร้อมใช้ในห้องเรียน** | เช่น คลิปการ์ตูนให้ครูเปิดให้เด็กดู + คู่มือ FA ว่าดูจบแล้วจะชวนคุยและตั้งคำถามอย่างไร |
+| **บริการ AI ตัดคลิป** | ครูอัปโหลดวิดีโอกิจกรรมหรือสัมภาษณ์ → AI ตัดเป็นคลิปสั้น ใส่ชื่อและโลโก้ SkillWise · คิดเป็นเครดิต (ตัวอย่างที่พูด: ต้นทุนราว 20 บาท ขาย 50–100 บาทต่อครั้ง) · มีเครื่องมือต้นแบบแล้ว |
+| **แพลตฟอร์ม** | Canvas → แผน → ลงมือทำ → บันทึก → ติดตามพัฒนาการ (ข้อ 60.10.4) และแปลงผลงานจริงเป็นเอกสาร (ข้อ 60.10.5) |
+
+#### 60.10.3 โมเดลคอร์ส
+
+**[DIRECTION]** ขยายความข้อ 21.2, 27, 37
+
+| ช่องทาง | หน้าที่ |
+|---|---|
+| **Online** | ทฤษฎีทั้งหมดอยู่ที่นี่ ผู้เรียนเรียนเองตามเวลาของตัวเอง |
+| **On-Zoom** | Workshop ที่ทำผ่าน Zoom ได้ ต้องเปิดกล้อง |
+| **On-site** | Workshop ขั้นสูงหรือ experience จริง **ไม่มีการบรรยายทฤษฎี** |
+
+กติกา:
+
+- **ต้องเรียน Online ผ่านก่อน** จึงสมัคร On-Zoom / On-site ได้ (prerequisite)
+- มี **Free tier** (คอร์สออนไลน์ฟรี) และ **Subscription tier** (จ่ายแล้วเรียนได้หลายคอร์ส)
+  - Free tier ของคอร์ส **ไม่ได้หมายถึงใช้เครื่องมือบนแพลตฟอร์มฟรี** (ข้อ 27) · ขอบเขต Free tier: **[OPEN]**
+- On-site สำหรับสมาชิก: จัดทุก 2–3 เดือน รับราว **20 คน** · สมาชิกที่มีสิทธิ์ลงชื่อแสดงความสนใจ → ระบบ**สุ่มเลือก** → ที่เหลือเป็น**ตัวสำรอง** และเลื่อนขึ้นเมื่อมีคนสละสิทธิ์
+- วิดีโอออนไลน์ต้องเป็น **interactive**:
+  - มีคำถามเด้งระหว่างวิดีโอ ต้องตอบก่อนจึงดูต่อได้
+  - **ข้ามไปส่วนที่ยังไม่ได้ดูไม่ได้**
+  - ต้องดูจบและทำแบบทดสอบผ่าน จึงปลดล็อกบทถัดไป
+  - เก็บชั่วโมงเรียนได้ (คล้ายระบบเก็บชั่วโมงพัฒนาวิชาชีพ)
+  - เปิดกล้องยืนยันตัวตนระหว่างเรียน: **[OPEN]**
+- Approach ต้องต่างจากคอร์สออนไลน์ทั่วไปที่ล้นตลาด
+
+ผลต่อระบบ: Domain Course / Enrollment (ข้อ 46) ต้องรองรับ prerequisite, ประเภทช่องทาง, การลงชื่อแสดงความสนใจ, การสุ่มเลือก, รายชื่อสำรอง, ความคืบหน้ารายวิดีโอ และคำถามในวิดีโอ
+
+#### 60.10.4 Flow หลักจากระบบ Sila5School (ต้นแบบของ SkillWise)
+
+**[REFERENCE]** ระบบที่ใช้งานจริงซึ่งทีมสาธิตในประชุม ใช้เป็นต้นแบบแนวคิดเท่านั้น ห้าม copy โค้ด (ข้อ 60.1) และห้าม hard-code ของเฉพาะ Sila5School เช่น สมุดบันทึกความดี ชั่วโมงสุขจริงหนอ 7 กิจวัตร ให้เป็นแกนของ SkillWise (ข้อ 9, 53)
+
+```
+ประเด็นท้าทาย → Canvas → AI ตรวจ Canvas → แผนพัฒนาศักยภาพ → แผนลงมือทำ → บันทึกรายสัปดาห์ → Timeline พัฒนาการรายเด็ก
+```
+
+**1. Canvas**
+
+- เริ่มจาก **ประเด็นท้าทาย** (เกิดอะไรขึ้น ส่งผลอย่างไร) แล้วเลือกขอบเขต (รายคน / กลุ่ม / ห้อง)
+- แนวคิดที่ใช้สื่อสารกับครู: เปลี่ยนจาก **Manage view** ("จะจัดการเด็กอย่างไร" ซึ่งมักจบที่ลงโทษหรือออกกฎ) เป็น **Unlock view** ("เด็กขาดศักยภาพอะไร จะช่วยเด็กอย่างไร")
+- ช่อง 1 ศักยภาพที่ต้องการปลดล็อก
+- ช่อง 2 เหตุผลที่เลือก ตรวจด้วยประโยค "ถ้า [เด็ก] มี [ศักยภาพ] จะทำให้ [ปัญหา] ลดลง" ถ้าอ่านแล้วไม่สมเหตุสมผล แปลว่าเลือกศักยภาพผิด
+- ช่อง 3 ภาพปลายทาง
+- ช่อง 4–6 **"กุญแจ 3 ดอก"**: นิสัยเล็ก ๆ ที่ทำทุกวัน / ครูเป็นนั่งร้าน (scaffolding) / สร้างโอกาสหรือเวทีให้ใช้
+- ช่อง 7 สัญญาณแห่งความสำเร็จที่จับต้องได้ภายใน 1 เทอม
+
+**2. AI ตรวจ Canvas**
+
+- ระบบเดิม: AI ให้คะแนนรายช่อง ต้องได้ ≥ 7 จึงใช้ทำแผนได้ · รันเป็นรอบตอนกลางคืน มี AI ตัวที่สองตรวจซ้ำเพื่อกันการหลอน แล้วมีคนตรวจในเครื่องมือภายนอกก่อนอนุมัติและอีเมลแจ้งครู
+- **[DIRECTION] SkillWise ต้องทำทั้งกระบวนการให้จบในระบบเดียว** ไม่อ้อมผ่านเครื่องของคนหรือเครื่องมือภายนอก และต้องตรวจความถูกต้องของผล AI ก่อนแสดงให้ครู
+- **[OPEN]** คะแนนจาก AI จะเป็นเงื่อนไขบังคับก่อนทำแผนหรือไม่ (ระวังข้อ 12: AI ไม่ใช่ผู้ตัดสิน) · ยังต้องมีคนตรวจซ้ำหรือไม่
+
+**3. Canvas → แผนพัฒนาศักยภาพ**
+
+- เลือก Canvas ไม่เกิน 5 ใบ (ตั้งค่าได้ ห้าม hard-code ตามข้อ 13) → AI สรุปเป็นแผน 4 หัวข้อ เช่น บริบทและประเด็นท้าทาย เป้าหมายการพัฒนา วิธีดำเนินงาน
+- ใช้เวลาหลายนาที จึง**ต้องเป็นงานเบื้องหลังที่มีสถานะให้ครูเห็น**
+- ครูเติมค่าเป้าหมายเองในช่องว่าง → ส่งตรวจ → ยกเลิกการส่งได้
+- ต้นทุน AI ราว **8–10 บาทต่อครั้ง** (Canvas 5 ใบ) · ระบบเดิมจำกัด 2 ครั้งต่อปีการศึกษา
+- **[DIRECTION] SkillWise คิดการใช้ AI เป็นเครดิต:** ลองฟรี 1 ครั้ง จากนั้นใช้ตาม quota ของแพ็กเกจหรือเติมเครดิต · ตัวเลข: **[OPEN]** (ข้อ 36)
+
+**4. แผนพัฒนา → แผนลงมือทำ**
+
+- ผู้ประสานงานหลักเป็นคนกดแปลง · **แปลงแล้ว Canvas และแผนพัฒนาจะถูกล็อก**
+- กำหนดช่วงดำเนินงาน (≥ 8 สัปดาห์) ครูร่วม กิจวัตรหลัก (ห้อง / ครู / วัน / เวลา) และกิจกรรมเสริมจากไอเดียใน Canvas
+- ผลลัพธ์คือ **to-do รายสัปดาห์** · เตือนทุกครั้งที่เข้าระบบ · เลื่อนวันเวลาได้ตลอด
+- แนวคิด: **"แผนคือคำสัญญา"**
+
+**5. บันทึกและพัฒนาการ**
+
+- ครูบันทึกเรื่องราวรายสัปดาห์ · แชร์เข้าพื้นที่แลกเปลี่ยนเรียนรู้ได้ (ต้องอนุมัติก่อน และไม่แสดงชื่อเด็ก)
+- **Timeline รายเด็ก:** รวมบันทึกจากครูทุกคน + สัญญาณจากช่อง 7 · AI เติมสรุป "ก่อน / หลัง" ให้ ครูแก้ได้ทั้งหมด
+
+สิ่งที่ระบบเดิมยังขาดและอยากได้ใน SkillWise: อัปเดตผ่าน LINE แทนการเข้าหน้าจอ (ข้อ 60.10.6) และ Dashboard สรุป
+
+#### 60.10.5 หลักฐานแบบ "ทำไปบันทึกไป"
+
+**[DIRECTION]** ขยายความข้อ 15 และ 20
+
+ปัญหาที่ครูเจอ: ผลงานจากโครงการได้รับการรับรองจากหน่วยงานน้อย ครูส่วนใหญ่ทำเอกสารย้อนหลังตอนปลายเทอม และผู้ตรวจไม่มีทางรู้ว่าทำจริงหรือไม่
+
+แนวทางของ SkillWise:
+
+- สร้างวัฒนธรรม **"ทำไปบันทึกไป"** บันทึกสั้น ๆ ทุกครั้งที่ทำ แล้วระบบสรุปเป็นรายงานตอนท้ายให้
+- **เวลาบันทึกต้องมาจากระบบ** ผู้ใช้ตั้งวันย้อนหลังเองไม่ได้ · การแก้ไขต้องเก็บประวัติ
+- ระบบช่วย**แปลงบันทึกจริงเป็นเอกสารที่ครูต้องส่ง** เช่น แผนแบบราชการ PDF เอกสาร VA/PA วิทยฐานะ และวิจัยในชั้นเรียน 5 บท (โรงเรียนเอกชนก็ต้องทำ)
+- หลักสำคัญ: **ครูต้องเรียนรู้และลงมือทำจริง ระบบช่วยลดภาระ ไม่ใช่เครื่องผลิตเอกสาร** (ข้อ 4, 49)
+- มุมมองจากประชุม: ครูยอมจ่ายสูงเพื่อเอกสารวิทยฐานะ ราคาระดับ "หลักพัน" จึงยังคุ้มสำหรับครู ไม่จำเป็นต้องฟรี · ราคาจริง: **[OPEN]**
+- เปิดให้หน่วยงานภายนอก (เช่น ศึกษานิเทศก์) ตรวจหลักฐานในระบบ หรือทำ MOU: **[OPEN — ทำทีหลัง]** ให้โฟกัสการพัฒนาครูและเด็กก่อน · ถ้าทำ ต้องเปิดเฉพาะหลักฐานการทำ ไม่รวม Reflection หรือ Coach Feedback และครูต้องเลือกแชร์เอง (ข้อ 31, 60.3)
+
+#### 60.10.6 LINE เป็นช่องทางหลัก
+
+**[DIRECTION]**
+
+- งานประจำของครูให้ทำผ่าน LINE ได้มากที่สุด แทนการเข้าหน้าจอ
+- เตือนตามแผนลงมือทำ เช่น "วันนี้ตั้งใจจะเล่นเกม … ทำหรือยัง ผลเป็นอย่างไร มีภาพไหม" → ครูตอบใน LINE → ระบบบันทึกกลับเป็นหลักฐาน (ตามกฎข้อ 60.10.5)
+- เตือนก่อนวันคอร์ส 2–3 วัน
+- รูปแบบการประมวลผลข้อความ: **AI จัดประเภทข้อความที่เข้ามา แล้ว workflow แบบกำหนดตายตัวทำงานต่อ** · ข้อความที่ไม่เกี่ยวข้องให้ตอบกลับสุภาพ ไม่ปล่อยให้ AI คุยยาว เพื่อคุมค่า token
+- ใช้ n8n หรือเขียน workflow ในระบบเอง: **[OPEN]**
+
+#### 60.10.7 หลังบ้านแบบสั่งงานด้วยแชท
+
+**[DIRECTION — อนาคต]** ไม่แทนที่ข้อ 60.7
+
+- Phase 1 ใช้หน้าแอดมินแบบปกติตามข้อ 60.7
+- อนาคต: หลังบ้านเป็นหน้าแชท แอดมินพิมพ์สั่งพร้อมแนบไฟล์ได้ เช่น "วันนี้มีอบรม เอาโปสเตอร์นี้ขึ้นหน้าแรก" แล้ว AI agent ทำให้ โดยไม่ต้องจำเมนู
+- การสั่งงานผ่านแชทต้องผ่านสิทธิ์และ audit log ชุดเดียวกับหน้าแอดมิน (ข้อ 60.7) และต้องให้ยืนยันก่อนลบหรือเผยแพร่
+
+#### 60.10.8 AI และวิธีพัฒนา
+
+**[DIRECTION]**
+
+- **ข้อมูลคือทรัพย์สินหลัก:** ข้อมูลที่ครูสะสมไว้บนแพลตฟอร์ม (Canvas แผน บันทึก พัฒนาการ) คือเหตุผลที่ครูใช้ต่อเนื่อง จึงต้องออกแบบ data ให้ต่อยอดได้ (ข้อ 26)
+- **คุมต้นทุน AI:** งานใหม่หรืองานยากใช้โมเดลที่เก่ง · งานที่ทำซ้ำจนรูปแบบนิ่งแล้ว แปลงเป็น script / workflow หรือใช้โมเดลที่ถูกกว่า
+- ลงทุน Local AI (ฮาร์ดแวร์ของตัวเอง) **เมื่อมีลูกค้าจ่ายเงินแล้วเท่านั้น**
+- วิธีทำงาน: AI เขียนโค้ดเป็นหลัก · คนเข้าใจโครงสร้าง ตรวจว่าตรงคอนเซ็ปต์ และเป็นผู้ตัดสินใจ · ปล่อยฟีเจอร์ได้ถี่ เมื่อทีมตรวจแล้วและผ่าน test
+
+#### 60.10.9 ขั้นตอนต่อไปจากประชุม
+
+1. **คัดฟีเจอร์ Phase 1** (ยัง OPEN ตามข้อ 50 #30)
+2. ~~ดูระบบ Sila5School เดิมว่ามีอะไรแล้ว~~ — ศึกษาแล้ว 24 Oct 2026 ดู `docs/sila5school-study.md` (ร่างฟีเจอร์ Phase 1 อยู่ในหัวข้อ 8 และคำถามที่ทีมต้องตัดสินอยู่ในหัวข้อ 9)
+3. ใช้ Stack ตามข้อ 60.5 → ทำ wireframe → สร้าง SkillWise → ปรับต่อเนื่อง
+4. ตกลงฟีเจอร์และ stack แล้ว ค่อยเลือก Hosting
+
+#### 60.10.10 สิ่งที่ยัง OPEN จากประชุมนี้
+
+- รายการฟีเจอร์ Phase 1 และสินค้าไหนเข้า Phase 1
+- ชื่อและแพ็กเกจของเกม
+- ขอบเขต Free tier ของคอร์ส
+- ราคา: เครดิต AI บริการตัดคลิป และระดับราคาแพลตฟอร์ม
+- คะแนน AI ของ Canvas เป็นเงื่อนไขบังคับหรือไม่ และยังต้องมีคนตรวจซ้ำหรือไม่
+- การเปิดให้หน่วยงานภายนอกตรวจหลักฐาน
+- การเปิดกล้องยืนยันตัวตนในคอร์สออนไลน์
+- n8n หรือ workflow ในระบบ
+- Hosting / Cloud, AI Provider / Model, Payment Gateway
+
+---
+
+**END OF CANONICAL CONTEXT**
