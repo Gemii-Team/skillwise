@@ -988,6 +988,8 @@ COMMENT ON TABLE practice_sessions IS 'to-do รายครั้งที่�
 -- =============================================================================
 -- 12. Evidence — บันทึกการลงมือทำแบบ "ทำไปบันทึกไป" (ข้อ 15, 60.10.5)
 --    เวลาบันทึกมาจากระบบ · บันทึกย้อนหลังติดป้าย · แก้ไขได้แต่เก็บประวัติทุกครั้ง
+--    บันทึกย้อนหลังเป็นแนวคิด ยังไม่ได้คุยรายละเอียด (ข้อ 60.12) · ถ้าทีมไม่ให้ย้อนหลังเลย
+--    ให้ API ตั้งระยะเป็น 0 วัน (happened_on = วันที่บันทึก) โดยไม่ต้องแก้ตารางนี้
 -- =============================================================================
 
 CREATE TABLE practice_logs (
@@ -1005,7 +1007,7 @@ CREATE TABLE practice_logs (
   revision_no          integer NOT NULL DEFAULT 1,
   updated_by           uuid REFERENCES users (id),
   updated_at           timestamptz NOT NULL DEFAULT now(),
-  -- ห้ามบันทึกล่วงหน้า · จะให้ย้อนหลังได้กี่วันยัง OPEN (study หัวข้อ 9 ข้อ 4) จึงเป็นค่าตั้งใน API
+  -- ห้ามบันทึกล่วงหน้า · จะให้ย้อนหลังได้หรือไม่และกี่วันยัง OPEN (ข้อ 60.12) จึงเป็นค่าตั้งใน API
   CHECK (happened_on <= (recorded_at AT TIME ZONE timezone)::date)
 );
 CREATE INDEX practice_logs_item_idx ON practice_logs (action_item_id, happened_on);
