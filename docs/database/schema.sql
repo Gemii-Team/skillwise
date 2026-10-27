@@ -301,6 +301,9 @@ CREATE TABLE files (
 );
 COMMENT ON TABLE files IS 'ไฟล์ทุกชนิด (R2/S3) ดาวน์โหลดผ่าน API ที่ตรวจสิทธิ์ · ระบบเดิมคุมสิทธิ์แค่ระดับ bucket';
 
+ALTER TABLE organizations
+  ADD COLUMN logo_file_id uuid REFERENCES files (id);  -- แก้ได้ด้วยสิทธิ์ org.profile.manage
+
 
 -- =============================================================================
 -- 5. Access — สินค้า seat สิทธิ์ใช้งาน และโควตา (ข้อ 36, 42, 60.8)
@@ -569,6 +572,10 @@ CREATE TABLE import_jobs (
 );
 COMMENT ON TABLE import_jobs IS 'งาน import ไฟล์ เช่น รายชื่อนักเรียนจาก Excel: อัปโหลด → preview → import ใน transaction';
 
+ALTER TABLE students
+  ADD COLUMN import_job_id uuid REFERENCES import_jobs (id),  -- import ครั้งไหน ใช้ไล่ตรวจหรือย้อนการ import
+  ADD CONSTRAINT students_import_source CHECK (import_job_id IS NULL OR source = 'import');
+
 
 -- =============================================================================
 -- 8. Tool / Case / Canvas (ข้อ 7, 12, 13, 45)
@@ -817,7 +824,7 @@ CREATE TABLE development_plans (
   created_at       timestamptz NOT NULL DEFAULT now(),
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
-COMMENT ON TABLE development_plans IS 'แผนพัฒนา 1 เรื่อง · เนื้อหาอยู่ใน development_plan_versions';
+COMMENT ON TABLE development_plans IS 'แผนพัฒนา 1 เรื่อง · เนื้อหาอยู่ใน development_plan_versions · current_version_id คือ version ที่ครูเลือกใช้';
 
 CREATE TABLE development_plan_versions (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -830,9 +837,16 @@ CREATE TABLE development_plan_versions (
   submitted_at         timestamptz,        -- ส่งให้ผู้ตรวจ/โค้ช (ถ้ามีขั้นตอนนี้)
   created_at           timestamptz NOT NULL DEFAULT now(),
   UNIQUE (development_plan_id, version_no),
+  UNIQUE (id, development_plan_id),
   CHECK ((source = 'ai') = (ai_job_id IS NOT NULL))
 );
 COMMENT ON TABLE development_plan_versions IS 'ร่างจาก AI และฉบับที่ครูแก้ แยกเป็น version · ครูเป็นผู้ตัดสินใจสุดท้าย (ข้อ 12)';
+
+-- version ที่ครูเลือกใช้ ต้องเป็น version ของแผนเดียวกัน
+ALTER TABLE development_plans
+  ADD COLUMN current_version_id uuid,
+  ADD CONSTRAINT development_plans_current_version_fk
+    FOREIGN KEY (current_version_id, id) REFERENCES development_plan_versions (id, development_plan_id);
 
 CREATE TABLE development_plan_sections (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -927,7 +941,9 @@ CREATE TABLE action_items (
   title                    text NOT NULL,
   description              text,
   expected_result          text,           -- คาดว่าจะเห็นอะไรในตัวเด็ก
-  recurrence_rule          text,           -- RRULE เช่น FREQ=WEEKLY;BYDAY=MO,WE
+  recurrence_rule          text,           -- RRULE เช่น FREQ=WEEKLY;BYDAY=MO,WE · null = ทำครั้งเดียววันที่ starts_on
+  starts_on                date,           -- null = เริ่มพร้อมแผน · ใช้กับกิจกรรมที่เพิ่มกลางแผนหรือทำครั้งเดียว
+  ends_on                  date,           -- null = จบพร้อมแผน
   time_of_day              time,
   duration_minutes         integer CHECK (duration_minutes > 0),
   reminder_offset_minutes  integer CHECK (reminder_offset_minutes >= 0),  -- null = ไม่เตือน
@@ -935,7 +951,9 @@ CREATE TABLE action_items (
   created_at               timestamptz NOT NULL DEFAULT now(),
   updated_at               timestamptz NOT NULL DEFAULT now(),
   CHECK (item_type <> 'routine' OR practice_template_id IS NOT NULL),
-  CHECK (item_type <> 'from_canvas' OR source_canvas_id IS NOT NULL)
+  CHECK (item_type <> 'from_canvas' OR source_canvas_id IS NOT NULL),
+  CHECK (ends_on IS NULL OR starts_on IS NULL OR ends_on >= starts_on),
+  CHECK (recurrence_rule IS NOT NULL OR starts_on IS NOT NULL)  -- ทำครั้งเดียวต้องระบุวัน
 );
 COMMENT ON TABLE action_items IS 'กิจกรรมในแผน: กิจวัตรจาก template / จากไอเดียใน Canvas / ครูคิดเอง';
 
@@ -991,6 +1009,9 @@ CREATE TABLE practice_logs (
   CHECK (happened_on <= (recorded_at AT TIME ZONE timezone)::date)
 );
 CREATE INDEX practice_logs_item_idx ON practice_logs (action_item_id, happened_on);
+-- นัดหนึ่งครั้งมีบันทึก "ทำแล้ว" ได้แถวเดียว (ระบบเดิมไม่กันบันทึกซ้ำ)
+CREATE UNIQUE INDEX practice_logs_one_done_per_session ON practice_logs (practice_session_id)
+  WHERE outcome = 'done' AND practice_session_id IS NOT NULL;
 COMMENT ON TABLE practice_logs IS 'บันทึกทำแล้ว/เลื่อน · ระบบเดิมแก้หรือลบไม่ได้ ส่วน SkillWise แก้ได้แต่เก็บประวัติ';
 
 CREATE TABLE practice_log_revisions (
@@ -1038,19 +1059,48 @@ CREATE TRIGGER practice_logs_keep_history AFTER INSERT OR UPDATE ON practice_log
 CREATE TRIGGER practice_log_revisions_append_only BEFORE UPDATE OR DELETE ON practice_log_revisions
   FOR EACH ROW EXECUTE FUNCTION forbid_change();
 
+-- รายการที่ผูกกับบันทึก (ครูร่วม, นักเรียน, ไฟล์แนบ, สัญญาณ) เก็บประวัติด้วยวิธีเดียวกัน:
+--   เพิ่ม = แถวใหม่ (added_by, added_at) · เอาออก = ติด removed_at / removed_by
+--   แก้ข้อความ = เอาแถวเดิมออกแล้วเพิ่มแถวใหม่ · trigger กันการแก้ทับ (ข้อ 60.10.5)
+--   API ห้ามลบแถว แต่ฐานข้อมูลไม่บล็อก DELETE เพื่อให้ลบตามคำขอลบข้อมูลส่วนบุคคลได้
+CREATE FUNCTION link_row_remove_only() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.removed_at IS NOT NULL
+     OR NEW.removed_at IS NULL
+     OR (to_jsonb(NEW) - 'removed_at' - 'removed_by') IS DISTINCT FROM (to_jsonb(OLD) - 'removed_at' - 'removed_by') THEN
+    RAISE EXCEPTION 'ตาราง % แก้ได้แค่การเอาออก (ตั้ง removed_at) ถ้าจะแก้ให้เอาออกแล้วเพิ่มแถวใหม่', TG_TABLE_NAME
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END $$;
+
 CREATE TABLE practice_log_participants (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   practice_log_id  uuid NOT NULL REFERENCES practice_logs (id) ON DELETE CASCADE,
   user_id          uuid NOT NULL REFERENCES users (id),
-  PRIMARY KEY (practice_log_id, user_id)
+  added_by         uuid NOT NULL REFERENCES users (id),
+  added_at         timestamptz NOT NULL DEFAULT now(),
+  removed_by       uuid REFERENCES users (id),
+  removed_at       timestamptz,
+  CHECK ((removed_at IS NULL) = (removed_by IS NULL))
 );
+CREATE UNIQUE INDEX practice_log_participants_active_key ON practice_log_participants (practice_log_id, user_id)
+  WHERE removed_at IS NULL;
 COMMENT ON TABLE practice_log_participants IS 'ครูคนอื่นที่ร่วมทำในครั้งนี้ นับเป็นหลักฐานของครูทุกคน (ระบบเดิมเก็บเป็น CSV)';
 
 CREATE TABLE practice_log_students (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   practice_log_id  uuid NOT NULL REFERENCES practice_logs (id) ON DELETE CASCADE,
   student_id       uuid NOT NULL REFERENCES students (id),
   observation      text,
-  PRIMARY KEY (practice_log_id, student_id)
+  added_by         uuid NOT NULL REFERENCES users (id),
+  added_at         timestamptz NOT NULL DEFAULT now(),
+  removed_by       uuid REFERENCES users (id),
+  removed_at       timestamptz,
+  CHECK ((removed_at IS NULL) = (removed_by IS NULL))
 );
+CREATE UNIQUE INDEX practice_log_students_active_key ON practice_log_students (practice_log_id, student_id)
+  WHERE removed_at IS NULL;
 COMMENT ON TABLE practice_log_students IS 'นักเรียนที่ครูสังเกตเห็นการเปลี่ยนแปลงในครั้งนี้ ใช้สร้าง timeline รายเด็ก';
 
 CREATE TABLE practice_log_attachments (
@@ -1061,19 +1111,39 @@ CREATE TABLE practice_log_attachments (
   url              text,
   caption          text,
   sort_order       integer NOT NULL DEFAULT 0,
-  created_at       timestamptz NOT NULL DEFAULT now(),
+  added_by         uuid NOT NULL REFERENCES users (id),
+  added_at         timestamptz NOT NULL DEFAULT now(),
+  removed_by       uuid REFERENCES users (id),
+  removed_at       timestamptz,
   CHECK (CASE WHEN kind = 'link' THEN url IS NOT NULL AND file_id IS NULL
-              ELSE file_id IS NOT NULL AND url IS NULL END)
+              ELSE file_id IS NOT NULL AND url IS NULL END),
+  CHECK ((removed_at IS NULL) = (removed_by IS NULL))
 );
 COMMENT ON TABLE practice_log_attachments IS 'หลักฐานแนบ · จำนวนรูปสูงสุด (ระบบเดิม 3) เป็นค่าตั้งใน API';
 
 CREATE TABLE practice_log_signals (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   practice_log_id    uuid NOT NULL REFERENCES practice_logs (id) ON DELETE CASCADE,
   success_signal_id  uuid NOT NULL REFERENCES success_signals (id),
   note               text,
-  PRIMARY KEY (practice_log_id, success_signal_id)
+  added_by           uuid NOT NULL REFERENCES users (id),
+  added_at           timestamptz NOT NULL DEFAULT now(),
+  removed_by         uuid REFERENCES users (id),
+  removed_at         timestamptz,
+  CHECK ((removed_at IS NULL) = (removed_by IS NULL))
 );
+CREATE UNIQUE INDEX practice_log_signals_active_key ON practice_log_signals (practice_log_id, success_signal_id)
+  WHERE removed_at IS NULL;
 COMMENT ON TABLE practice_log_signals IS 'สัญญาณความสำเร็จที่เห็นในครั้งนี้';
+
+CREATE TRIGGER practice_log_participants_remove_only BEFORE UPDATE ON practice_log_participants
+  FOR EACH ROW EXECUTE FUNCTION link_row_remove_only();
+CREATE TRIGGER practice_log_students_remove_only BEFORE UPDATE ON practice_log_students
+  FOR EACH ROW EXECUTE FUNCTION link_row_remove_only();
+CREATE TRIGGER practice_log_attachments_remove_only BEFORE UPDATE ON practice_log_attachments
+  FOR EACH ROW EXECUTE FUNCTION link_row_remove_only();
+CREATE TRIGGER practice_log_signals_remove_only BEFORE UPDATE ON practice_log_signals
+  FOR EACH ROW EXECUTE FUNCTION link_row_remove_only();
 
 
 -- =============================================================================
@@ -1193,7 +1263,9 @@ COMMENT ON TABLE notification_templates IS '[Should] แม่แบบข้อ
 
 CREATE TABLE notification_jobs (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id              uuid NOT NULL REFERENCES users (id),
+  user_id              uuid REFERENCES users (id),
+  recipient_email      citext,             -- ผู้รับที่ยังไม่มีบัญชี เช่น อีเมลเชิญเข้าองค์กร
+  invitation_id        uuid REFERENCES invitations (id),
   template_id          uuid NOT NULL REFERENCES notification_templates (id),
   channel              text NOT NULL CHECK (channel IN ('email', 'line', 'in_app')),
   payload              jsonb NOT NULL DEFAULT '{}',
@@ -1209,7 +1281,9 @@ CREATE TABLE notification_jobs (
   read_at              timestamptz,        -- ใช้กับ in_app
   error_message        text,
   created_at           timestamptz NOT NULL DEFAULT now(),
-  CHECK (status <> 'sent' OR sent_at IS NOT NULL)
+  CHECK (status <> 'sent' OR sent_at IS NOT NULL),
+  CHECK (num_nonnulls(user_id, recipient_email) = 1),
+  CHECK (recipient_email IS NULL OR channel = 'email')
 );
 CREATE INDEX notification_jobs_due_idx ON notification_jobs (scheduled_for) WHERE status = 'scheduled';
 COMMENT ON TABLE notification_jobs IS '[Should] คิวแจ้งเตือน เช่น เตือนตามแผนลงมือทำผ่าน LINE (ข้อ 60.10.6) · ระบบเดิมเก็บค่าเตือนแต่ไม่เคยส่ง';

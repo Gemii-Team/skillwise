@@ -31,9 +31,9 @@
 ## 3. ข้อมูลในระบบเดิม (ตาราง / คอลัมน์สำคัญ / ค่าสถานะ)
 
 **`school_action_plan`** — 1 แถวต่อ (โครงการ, โรงเรียน) (`docs/schema/sila5school.sql:1695-1711`)
-- `sap_draft_id` → ร่าง AI ที่ใช้หา Canvas ชุดต้นทาง (`sad_canvas_ids` เป็น JSON ไม่ใช่ FK) (`console.php:2476-2501`)
+- `sap_draft_id` เก็บ id ร่าง AI ตอน save (`actionPlanController.php:993`) แต่ไม่มีโค้ดอ่านกลับ · Canvas ต้นทางหาจากร่าง AI ล่าสุดที่สำเร็จเสมอ (`sad_canvas_ids` เป็น JSON ไม่ใช่ FK) (`console.php:2476-2501`)
 - `sap_start_date` / `sap_end_date` · `sap_owner_person_id` · `sap_assistant_ids` (CSV)
-- `sap_status`: 0 ร่าง / 1 เปิดใช้ — โค้ดเขียน 1 ทุกครั้งที่ save (`actionPlanController.php:998`) สถานะ 0 จึงไม่เคยเกิด (wizard อยู่ฝั่ง browser ทั้งหมด)
+- `sap_status`: 0 ร่าง / 1 เปิดใช้ — โค้ดเขียน 1 ทุกครั้งที่ save (`actionPlanController.php:998`) จึงไม่มี flow ใน repo ที่สร้างสถานะ 0 (wizard อยู่ฝั่ง browser ทั้งหมด) · แต่ข้อมูลจริงมี 3 แผน เปิดใช้ 2 (study 1.1) ที่มาของแผนที่เหลือยังไม่ได้ตรวจ
 - `sap_confirm_datetime` / `sap_confirm_person_id` — "ทีมครูอ่านแผนแล้ว" บันทึกครั้งแรกครั้งเดียว (`:1000-1003`)
 
 **`school_action_task`** (`sila5school.sql:1715-1749`)
@@ -62,7 +62,7 @@ stateDiagram-v2
 Wizard (`actionPlanController.php:595-828`, `console-actionPlan.js:9-78`)
 1. **ช่วงดำเนินงาน:** วันเริ่ม–สิ้นสุด, ผู้รับผิดชอบหลัก, ครูผู้ช่วย, ติ๊ก "ทีมครูอ่านแผนแล้ว" (ปุ่มถัดไปปิดจนกว่าจะติ๊ก)
 2. **กิจวัตรหลัก:** ตรวจสมุด / ชั่วโมงสุขจริงหนอ ตั้งได้หลายชุด (ห้อง+ครู+วัน+เวลา+เตือน) · Academy ชุดเดียว (ความถี่ + วันเป้าหมาย + ผู้รับแจ้ง)
-3. **กิจกรรมเสริม:** ไม่บังคับ · ลากคลุมข้อความ Canvas ช่อง 4/5/6 หรือกด "ใช้ทั้งช่อง" เพื่อสร้างการ์ด หรือเพิ่มเอง
+3. **กิจกรรมเสริม:** ไม่บังคับ · ลากคลุมข้อความ Canvas ช่อง 4/5/6 หรือกด "ใช้ทั้งช่อง" (ยกมาแค่บรรทัดแรก ≤255 ตัวอักษร `console-actionPlan.js:107-111`) เพื่อสร้างการ์ด หรือเพิ่มเอง
 4. **ตรวจและเปิดใช้:** สรุปแล้วส่งทั้งก้อนใน request เดียว
 
 To-do รายสัปดาห์ (คำนวณทุกครั้งที่เปิดหน้า ไม่ได้เก็บเป็นแถว)
@@ -98,7 +98,7 @@ flowchart LR
 - กิจกรรมเสริมที่มีชื่อต้องกรอก "เชื่อมกับศักยภาพช่อง 1 อย่างไร" (`:978-980`) · หน้าเว็บทักเมื่อสั้นกว่า 20 ตัวอักษรแต่ไม่บล็อก และไม่ใช้ AI (`console-actionPlan.js:292-305`)
 - วันเริ่มของกิจกรรมเสริมต้องอยู่ในช่วงแผน (`actionPlanController.php:981-984`)
 - ประเภท 2 หรือ 3 ตัดสินจากการผูก Canvas · ถ้า Canvas ไม่อยู่ในชุดของแผน ระบบตัดเป็นไม่ผูก (= ประเภท 3) (`:1097-1102`)
-- กิจกรรมเสริมเลือกห้องได้ 1 ห้องและผู้รับผิดชอบ 1 คน (ค่าเริ่มต้น = ผู้รับผิดชอบหลัก) แม้คอลัมน์เป็น CSV (`:845-855, 1107-1108, 2186-2190`)
+- กิจกรรมเสริมเลือกห้องได้ 1 ห้อง (หรือไม่ระบุ) และผู้รับผิดชอบ 1 คน แม้คอลัมน์เป็น CSV · การ์ดใหม่เลือกครูคนแรกในรายชื่อไว้ให้ (เรียงตามบทบาท ผู้ประสานงานขึ้นก่อน `console.php:904`) ส่วน server ใช้ `owner_id` เฉพาะเมื่อไม่มีค่าส่งมา (`actionPlanController.php:845-855, 1107-1108, 2186-2190`)
 - กิจกรรมเสริมทำซ้ำได้แค่ "ครั้งเดียว" หรือ "ทุกสัปดาห์" (`:1109`)
 - เขียนแผนและงานทั้งหมดใน transaction เดียว ผิดพลาดจุดไหน rollback ทั้งก้อน (`:987-990, 1142, 1148-1156`)
 - งานที่หายจากฟอร์มตอน save ถูก soft delete (สถานะ 9) บันทึกเดิมยังอยู่ (`:1080-1085, 1135-1140`)
@@ -130,14 +130,14 @@ flowchart LR
 - แปลงแล้วไม่มีทางปลดล็อก Canvas และแผนพัฒนาในปีนั้น · ปรับ Canvas ตาม feedback ระหว่างทางไม่ได้
 - แก้แผนที่ live = update แถวงานเดิมในที่ ไม่มีประวัติว่าเคยตั้งวัน/เวลา/ห้องอะไร (`actionPlanController.php:1041-1044, 1121-1124`)
 - ย่นวันสิ้นสุดแผนได้โดยไม่ตรวจบันทึกที่อยู่นอกช่วงใหม่
-- ถ้าปีการศึกษาเหลือน้อยกว่า 56 วัน จะ save แผนไม่ได้เลย (`:1920-1931`)
+- server ไม่ตรวจว่าวันเริ่มต้องไม่ก่อนวันนี้ (ช่องวันที่เลือกย้อนได้ถึงวันเปิดปี `:645, 1920-1931`) ถ้าปีการศึกษาเหลือน้อยกว่า 56 วัน ครูต้องตั้งวันเริ่มย้อนไปในอดีตจึงจะ save ได้
 - จำกัด จันทร์–ศุกร์ ของภารกิจหลักมีแค่ใน dropdown (`:40, 1961`) server รับ 0–6 (`:1033`)
 - `sat_repeat_type` = 2 มีใน schema แต่กิจกรรมเสริมตั้งไม่ได้ · Academy ใช้คอลัมน์เดียวกันเก็บความถี่ (1 ทุกจันทร์ / 2 ทุก 2 สัปดาห์) คนละความหมาย (`:46, 1060`)
 - เลื่อนงานครั้งเดียวเขียนทับวันเดิมของงาน วันเดิมเหลือแค่ในบันทึก "เลื่อน" (`:1629-1644`)
 - เลื่อนงานรายสัปดาห์ไม่ได้ระบุวันใหม่ ถ้าช่วงแผนไม่พอให้ไปขยายวันสิ้นสุดเอง (`:1584`)
 - "วันนี้" และ "สัปดาห์นี้" ใช้เวลาของ server (`date()`) ไม่มี timezone ต่อองค์กรหรือผู้ใช้
 - popup หลัง login ผูกกับ session flag ถ้า session หมดจะขึ้นใหม่ (`:1683-1684`)
-- ปุ่ม ＋ ลอยเรียก action `fab` ซึ่งไม่อยู่ใน whitelist ของครู type 3 (`console.php:118`) ฝั่ง JS ทำงานได้เพราะ layout โหลดเฉพาะผู้มีสิทธิ์ (`global-post.js:4`)
+- ปุ่ม ＋ ลอยเรียก action `fab` ซึ่งไม่อยู่ใน whitelist ของครู type 3 (`console.php:118`) · `fabAction` เองก็คืน badge 0 ให้ type 3 (`actionPlanController.php:1659-1661`) · script ทำงานเมื่อ layout ตั้ง `POST_CFG` ซึ่ง comment บอกว่าตั้งเฉพาะผู้มีสิทธิ์ (`global-post.js:4`) ส่วนที่ตั้งค่านี้ไม่อยู่ในสำเนา
 - กิจวัตรที่ Canvas เน้น อ่านจากข้อความช่อง 4 ด้วย regex "ข้อ N" (`actionPlanController.php:656-664, 1902-1907`) ข้อความรูปแบบอื่นจะไม่ถูกจับ
 - หมุดปฏิทิน Happy Hour เลือกจาก `activity_type_id` 4/15 ตามระดับชั้นของโรงเรียน (`console.php:2599-2635`)
 - ป้ายชื่อ Canvas ใช้ `sc_target` ถ้าว่างใช้ชื่อขอบเขต + ประเด็นท้าทายแบบตัดสั้น (`actionPlanController.php:1991-1998`)
@@ -163,16 +163,16 @@ flowchart LR
 
 | ระบบเดิม | SkillWise | หมายเหตุ |
 |---|---|---|
-| `school_action_plan` | `action_plans` | snapshot ของ `development_plan_versions` 1 version · ผูก `development_plan_canvases` (canvas revision) ด้วย FK แทน `sap_draft_id` · มีหลายรอบต่อครูได้ |
-| `sap_owner_person_id`, `sap_assistant_ids`, `sap_confirm_*` | `action_plan_members` (role owner/co-teacher, `acknowledged_at`) | ยืนยันการอ่านรายคน ไม่ใช่ติ๊กเดียวแทนทั้งทีม |
-| `school_action_task` | `action_items` (kind: `routine` / `from_canvas` / `custom`) | `routine` อ้าง `practice_templates` · `from_canvas` อ้าง canvas revision + `tool_fields` (ช่องที่ยกมา) |
-| `sat_core_key` + `CORE_TASKS` | `practice_sets` + `practice_templates` | ชุดกิจวัตรเป็นข้อมูล ตั้งค่าได้ต่อองค์กร/แพ็กเกจ · ค่าเริ่มต้นวัน/เวลา/ช่วงเวลาอยู่ใน template |
+| `school_action_plan` | `action_plans` | snapshot ของ `development_plan_versions` 1 version (`plan_version_id`) · canvas revision ที่ใช้มาจาก `development_plan_canvases` ของ version นั้น (FK) แทน `sap_draft_id` · มีหลายรอบต่อครูได้ |
+| `sap_owner_person_id`, `sap_assistant_ids`, `sap_confirm_*` | `action_plan_members` (`member_role` = `owner` / `co_teacher`, `acknowledged_at`) | ยืนยันการอ่านรายคน ไม่ใช่ติ๊กเดียวแทนทั้งทีม |
+| `school_action_task` | `action_items` (`item_type`: `routine` / `from_canvas` / `custom`) | `routine` อ้าง `practice_templates` · `from_canvas` อ้าง `canvases` (`source_canvas_id`) + `tool_fields` (`source_tool_field_id` ช่องที่ยกมา) |
+| `sat_core_key` + `CORE_TASKS` | `practice_sets` + `practice_templates` | ชุดกิจวัตรเป็นข้อมูล ตั้งค่าได้ต่อองค์กร (`practice_sets.organization_id` null = ชุดกลาง) · template มี `default_recurrence_rule` · การผูกกับแพ็กเกจ และค่าเริ่มต้นเวลา/ช่วงเวลาต่อ template ยังไม่มีใน schema MVP |
 | `sat_stc_ids` | `action_item_org_units` | ห้อง/กลุ่มเป็น relation ไปที่ `org_units` |
-| `sat_teacher_ids` | `action_item_assignees` | ผู้รับผิดชอบต้องเป็นสมาชิกของแผน |
-| `sat_repeat_type` + `sat_weekday` + `sat_time(_end)` + `sat_start_date` | RRULE + `dtstart` + ช่วงเวลา + timezone ใน `action_items` | รองรับทุกสัปดาห์/ทุก 2 สัปดาห์/ครั้งเดียวด้วยกลไกเดียว |
+| `sat_teacher_ids` | `action_item_assignees` | ผู้รับผิดชอบต้องเป็นสมาชิกของแผน (ตรวจที่ API · schema ไม่มี constraint) |
+| `sat_repeat_type` + `sat_weekday` + `sat_time(_end)` + `sat_start_date` | `recurrence_rule` (RRULE) + `time_of_day` + `duration_minutes` ใน `action_items` · timezone อยู่ที่ `action_plans.timezone` | ทุกสัปดาห์ / ทุก 2 สัปดาห์ใช้ RRULE · ครั้งเดียวใช้ `starts_on` โดยไม่มี RRULE (CHECK บังคับ) · `action_items.starts_on` / `ends_on` (null = ตามช่วงของแผน) ใช้กับกิจกรรมที่เพิ่มกลางแผนด้วย |
 | to-do ที่คำนวณสด | `practice_sessions` | 1 แถวต่อครั้งที่ต้องทำ · เลื่อน = ย้าย session (เก็บวันเดิม) ไม่แก้ตัว item |
-| `sat_expect_signal` | relation ไป `success_signals` | ไม่ใช้ข้อความอิสระ |
-| `sat_remind_day`, `sat_notify` | ค่าเตือนใน `action_items` → `notification_jobs` + `notification_templates` | ส่งจริงผ่าน BullMQ (Should #18) · LINE เป็นช่องทางหลัก (Context 60.10.6) · กันส่งซ้ำ |
+| `sat_expect_signal` | ยังไม่มีใน schema MVP (มีแค่ `action_items.expected_result` เป็นข้อความ) | ถ้าจะผูกสัญญาณที่คาดหวังกับ `success_signals` ต้องเพิ่มตารางเชื่อม · ตอนบันทึกผลผูกได้แล้วผ่าน `practice_log_signals` |
+| `sat_remind_day`, `sat_notify` | `action_items.reminder_offset_minutes` → `notification_jobs` + `notification_templates` | ส่งจริงผ่าน BullMQ (Should #18) · LINE เป็นช่องทางหลัก (Context 60.10.6) · กันส่งซ้ำด้วย `dedupe_key` · การเลือกผู้รับเตือน (แทน `sat_notify`) ยังไม่มีคอลัมน์ใน schema MVP |
 | (ไม่มี) | `audit_logs` | บันทึกการแปลง การแก้แผน และการเปิดดูข้อมูลอ่อนไหวโดยแอดมิน |
 
 **Permission ที่ endpoint น่าจะต้องประกาศ** (ทุก endpoint ตรวจด้วย guard · ค่าเริ่มต้นปฏิเสธ)
@@ -189,10 +189,10 @@ flowchart LR
 - **ไม่ hard-code กิจวัตร:** ภารกิจหลักทุกอย่างมาจาก `practice_templates` ที่ตั้งค่าได้ · ห้ามมี enum `diary_check` / `happy_hour` / `academy_follow` ในโค้ด (Context 9, 47, 53)
 - **ครูทำคนเดียวได้ครบ:** แผนต้องใช้ได้โดยไม่มีครูร่วม และไม่ต้องสังกัดองค์กร (Context 34, study 7.1 ข้อ 1) · ห้อง (`org_units`) จึงเป็นค่าไม่บังคับสำหรับครูอิสระ
 - **ด่านก่อนแปลงไม่ fix:** เงื่อนไข "แผนต้องส่งตรวจ" และ "Canvas ต้องได้คะแนนผ่าน" เป็น OPEN · ออกแบบเป็น policy ที่เปิด/ปิดได้ ไม่เขียนเป็นเงื่อนไขตายตัว
-- **ระยะเวลาขั้นต่ำและวันทำงานตั้งค่าได้:** ค่าเริ่มต้น 56 วัน (Context 60.10.4 ข้อ 4) · วันทำงานมาจากการตั้งค่าองค์กร
-- **เตือนจริง:** ใช้ `notification_jobs` ตามเวลาของ session และ timezone ขององค์กร · ถ้ายังไม่ส่งจริง ห้ามแสดงว่า "จะเตือน"
+- **ระยะเวลาขั้นต่ำและวันทำงานตั้งค่าได้:** ค่าเริ่มต้น 56 วัน (Context 60.10.4 ข้อ 4) ตรวจที่ API (schema บังคับแค่ `ends_on > starts_on`) · วันทำงานมาจากการตั้งค่าองค์กร (ยังไม่มีใน schema MVP)
+- **เตือนจริง:** ใช้ `notification_jobs` ตามเวลาของ session และ timezone ของแผน (`action_plans.timezone`) · ถ้ายังไม่ส่งจริง ห้ามแสดงว่า "จะเตือน"
 - **กฎทุกข้ออยู่ที่ API:** schema ตรวจข้อมูลใน `packages/shared` (Zod) ใช้ทั้งสองฝั่ง · server ตรวจห้อง/ครู/วัน/ช่วงแผนเอง
-- **เลื่อนได้ตลอดแต่มีร่องรอย:** เลื่อน session เก็บ `original` + เหตุผล + ผู้เลื่อน · แก้ item ระหว่างรอบเก็บประวัติ (Context 60.10.5)
+- **เลื่อนได้ตลอดแต่มีร่องรอย:** เลื่อน session เก็บ `original_planned_at` · เหตุผลและผู้เลื่อนเก็บเป็น `practice_logs` (`outcome` = `postponed`, `author_user_id`, `note`) · ประวัติการแก้ item ระหว่างรอบยังไม่มีใน schema MVP (Context 60.10.5 กำหนดเรื่องประวัติไว้ที่บันทึก)
 - **AI ไม่เสนอกิจกรรมใน Phase นี้:** ตามระบบเดิม (`actionPlanController.php:788`) · ถ้าจะเพิ่ม "AI แนะนำ Routine" (Context 12) ต้องตัดชื่อเด็กก่อนส่งทุกครั้ง และเป็นงานที่ต้องตกลงแยก
 
 ## 10. คำถามที่ยัง OPEN

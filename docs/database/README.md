@@ -17,7 +17,7 @@
 | `schema.sql` | สร้างตาราง, constraint, trigger และ view ทั้งหมด |
 | `seed.sql` | ข้อมูลตัวอย่างที่แต่งขึ้นทั้งหมด ไหลครบวงจรตั้งแต่สมัครจนได้ coach feedback |
 | `rls.sql` | ตัวอย่าง Row-Level Security กันข้อมูลนักเรียนข้ามองค์กรในระดับฐานข้อมูล |
-| `checks.sql` | ทดสอบ 21 ข้อว่ากฎสำคัญทำงานจริง (ROLLBACK ตอนจบ ไม่เปลี่ยนข้อมูล) |
+| `checks.sql` | ทดสอบ 27 ข้อว่ากฎสำคัญทำงานจริง (ROLLBACK ตอนจบ ไม่เปลี่ยนข้อมูล) |
 
 ## วิธีรัน
 
@@ -29,7 +29,7 @@ cd docs/database
 cat schema.sql seed.sql rls.sql checks.sql | docker exec -i skillwise-pg psql -U postgres -d skillwise -v ON_ERROR_STOP=1
 ```
 
-ผลที่ถูกต้องคือขึ้น `NOTICE: OK 1` ถึง `OK 21` ครบ และไม่มี ERROR
+ผลที่ถูกต้องคือขึ้น `NOTICE: OK 1` ถึง `OK 27` ครบ และไม่มี ERROR
 
 **seed คิดวันที่จากวันที่รัน** (เขตเวลา Asia/Bangkok) ข้อมูลจึงสมเหตุสมผลทุกครั้ง เช่น แผนลงมือทำเริ่ม 17 วันก่อนวันนี้
 
@@ -55,7 +55,7 @@ cat schema.sql seed.sql rls.sql checks.sql | docker exec -i skillwise-pg psql -U
 | **Evidence** | `practice_logs`, `practice_log_revisions`, `practice_log_participants`, `practice_log_students`, `practice_log_attachments`, `practice_log_signals` | Must |
 | **Reflection / Coaching** | `reflections`, `coach_assignments`, `coach_feedbacks`, `share_grants` | Must |
 | **Timeline / เอกสาร** | `student_progress_summaries`, `generated_documents` | Should |
-| **Notification** | `notification_templates`, `notification_jobs`, `notification_events` | Should |
+| **Notification** | `notification_templates`, `notification_jobs`, `notification_events` | Should · อีเมลเชิญเข้าองค์กร (Must) ใช้ `notification_jobs.recipient_email` · ถ้า Phase 1 ยังไม่มีระบบส่งอีเมล ให้เชิญด้วยลิงก์ (Phase 1 ส่งอีเมลหรือไม่ยัง OPEN ดู spec 10) |
 | **Content** | `contents` | Should |
 | **Audit** | `audit_logs` | Must |
 | **View** | `usage_balances` (ยอดเครดิตคงเหลือ), `org_activity_summary` (ตัวเลขรวมสำหรับผู้บริหาร) | Must |
@@ -116,22 +116,24 @@ erDiagram
    - เพิ่ม Tool ใหม่หรือปรับช่องได้โดยไม่แก้ schema (ข้อ 45)
 3. **ไม่เขียนทับข้อมูลที่ใช้ดูพัฒนาการ**
    - Canvas: `canvas_revisions` (แก้ทับไม่ได้)
-   - แผน: `development_plan_versions`
+   - แผน: `development_plan_versions` · ฉบับที่ครูเลือกใช้คือ `development_plans.current_version_id`
    - บันทึก: `practice_log_revisions` (trigger เขียนให้ทุกครั้ง)
+   - รายการที่ผูกกับบันทึก (ครูร่วม, นักเรียน, ไฟล์แนบ, สัญญาณ): เอาออกด้วย `removed_at` · แก้ข้อความ = เอาแถวเดิมออกแล้วเพิ่มแถวใหม่ (trigger กันแก้ทับ) · การห้ามลบแถวตรวจที่ API ฐานข้อมูลไม่บล็อก เพื่อให้ลบตามคำขอลบข้อมูลส่วนบุคคลได้
    - การให้ความยินยอม: `user_consents` (เพิ่มแถวใหม่ทุกครั้ง)
 4. **เก็บซ้ำโดยตั้งใจ เพื่อให้ฐานข้อมูลตรวจความถูกต้องได้**
    - `organization_id` ใน `student_enrollments`, `case_targets` และ `membership_org_units` ทำให้ใช้ composite foreign key บังคับได้ว่านักเรียน ห้อง และ case อยู่องค์กรเดียวกัน
    - `tool_version_id` ใน `canvas_revisions` และ `canvas_field_values` บังคับให้คำตอบตรงกับช่องของ Tool version เดียวกัน
 5. **ใช้ JSONB เฉพาะข้อมูลที่โครงไม่ตายตัวจริง**
-   - ค่าตั้งของ Tool (`tool_versions.settings`)
+   - ค่าตั้งของ Tool (`tool_versions.settings`) และค่าหน้าจอรายช่อง (`tool_fields.config`)
    - ข้อมูลเสริมขององค์กร (`organizations.attributes`)
-   - input/output ของงาน AI
-   - payload ของการแจ้งเตือน
-   - error ราย row ของการ import
+   - input/output ของงาน AI (`ai_jobs.input_snapshot`, `ai_jobs.output`)
+   - payload ของการแจ้งเตือน (`notification_jobs.payload`)
+   - error รายแถวของการ import (`import_jobs.row_errors`)
+   - ข้อมูลประกอบของ log (`audit_logs.metadata`, `notification_events.metadata`)
 
 ### กฎที่ฐานข้อมูลบังคับเอง
 
-ทุกข้อทดสอบใน `checks.sql` (เลขในวงเล็บคือเลขข้อทดสอบ)
+ทุกข้อทดสอบใน `checks.sql` (เลขในวงเล็บคือเลขข้อทดสอบ) · ข้อ 16 และ 24 เป็นการตรวจข้อมูลตัวอย่าง ไม่ใช่กฎที่ฐานข้อมูลบังคับ
 
 | กฎ | วิธีบังคับ | ที่มา |
 |---|---|---|
@@ -151,6 +153,14 @@ erDiagram
 | ผู้บริหารไม่มีสิทธิ์อ่อนไหว (16) | ข้อมูลบทบาทใน seed | ข้อ 31 |
 | คนนอกองค์กรไม่เห็นนักเรียน · โค้ชเห็นเฉพาะนักเรียนใน case ที่ดูแล (17–20) | RLS (`rls.sql`) | ข้อ 60.2 |
 | view ของผู้บริหารมีแต่ตัวเลขรวม (21) | view `org_activity_summary` | ข้อ 31, 43 |
+| นัดหนึ่งครั้งมีบันทึก "ทำแล้ว" ได้แถวเดียว (22) | partial unique index | spec 08 (ระบบเดิมไม่กันซ้ำ) |
+| รายการที่ผูกกับบันทึกแก้ทับไม่ได้ (23) | trigger | ข้อ 60.10.5 |
+| เอาออกด้วย `removed_at` แล้วแถวเดิมยังอยู่ (24) | ข้อ 24 ตรวจข้อมูลตัวอย่างว่าประวัติครบ · การห้ามลบแถวตรวจที่ API ไม่ได้บังคับในฐานข้อมูล | ข้อ 60.10.5 |
+| version ที่เลือกใช้ต้องเป็นของแผนเดียวกัน (25) | composite foreign key | ข้อ 12 |
+| งานแจ้งเตือนมีผู้รับแบบเดียว: บัญชีผู้ใช้ หรืออีเมลของคนที่ยังไม่มีบัญชี (26) | CHECK | study 8 #3 (เชิญด้วยอีเมล) |
+| กิจกรรมทำครั้งเดียวต้องระบุวัน (27) | CHECK | spec 07 |
+
+ข้อ 1 ใน `checks.sql` ทดสอบการแจกทีละครั้ง ส่วนกรณีกดพร้อมกันทดสอบแยกด้วย 2 session แล้ว (session ที่สองรอ lock แล้วถูกปฏิเสธ) แต่ไม่ได้ใส่ใน `checks.sql` เพราะต้องใช้หลาย connection
 
 **กฎที่เป็นเรื่อง [OPEN] ไม่ได้บังคับด้วย constraint** แต่เก็บเป็นค่าตั้งหรือตรวจที่ API:
 - เกณฑ์คะแนนพร้อมทำแผน
@@ -263,13 +273,17 @@ erDiagram
 ## 7. ตอนแปลงเป็น Prisma
 
 สิ่งที่ Prisma schema เขียนตรง ๆ ไม่ได้ ให้เก็บไว้ใน migration แบบ SQL ดิบ (`prisma migrate dev --create-only` แล้วเติม SQL):
-- trigger ทั้งหมด
+- trigger และ function ทั้งหมด
 - EXCLUDE constraint
-- generated column `is_backdated`
+- generated column `practice_logs.is_backdated` และ `order_items.amount`
 - CHECK constraint
 - RLS policy
+- view `usage_balances` และ `org_activity_summary` · Prisma ประกาศ view ได้ด้วย preview feature `views` แต่ Prisma Migrate ไม่สร้าง view ให้
+- unique index แบบ `NULLS NOT DISTINCT` (`role_assignments_active_key`)
 
 สิ่งที่ Prisma รองรับแต่ต้องประกาศเอง:
-- **partial unique index (`... WHERE ...`):** ถ้า Prisma version ที่ใช้ยังประกาศใน schema ไม่ได้ ให้เขียนใน SQL migration
+- **partial index (`... WHERE ...`):**
+  - Prisma 7 ประกาศได้ด้วย `where:` ใน `@@unique` / `@@index` โดยต้องเปิด preview feature `partialIndexes`
+  - version ก่อนหน้าให้เขียนใน SQL migration
 - **composite foreign key:** ประกาศด้วย `@relation(fields: [a, b], references: [x, y])` และต้องมี `@@unique([x, y])` ที่ตารางปลายทาง
 - **ชื่อตาราง:** ใช้ `@@map("snake_case")` ให้ตรงกับชื่อใน `schema.sql`

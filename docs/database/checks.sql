@@ -1,7 +1,7 @@
 -- =============================================================================
 -- SkillWise — ตรวจว่ากฎในฐานข้อมูลทำงานจริง
 -- =============================================================================
--- รันหลัง schema.sql → seed.sql → rls.sql ทุกข้อต้องขึ้น NOTICE "OK"
+-- รันหลัง schema.sql → seed.sql → rls.sql ทุกข้อ (27 ข้อ) ต้องขึ้น NOTICE "OK"
 -- ถ้าข้อไหนไม่เป็นตามคาด จะขึ้น ERROR "FAIL ..." แล้วหยุด
 -- ไฟล์นี้ ROLLBACK ตอนจบ จึงไม่เปลี่ยนข้อมูลในฐาน
 --
@@ -195,6 +195,61 @@ BEGIN
    WHERE table_name = 'org_activity_summary' AND column_name ~ '(name|student|note|body)';
   IF n <> 0 THEN RAISE EXCEPTION 'FAIL 21: view ข้อมูลรวมมีคอลัมน์รายคน'; END IF;
   RAISE NOTICE 'OK 21: org_activity_summary มีแค่ตัวเลขรวม';
+END $$;
+
+-- 22. นัดเดียวกันบันทึก "ทำแล้ว" ซ้ำไม่ได้
+DO $$ BEGIN
+  INSERT INTO practice_logs (action_item_id, practice_session_id, author_user_id, outcome, happened_on)
+  VALUES ('84000000-0000-4000-8000-000000000001', '85000000-0000-4000-8000-000000000001',
+          'a1000000-0000-4000-8000-000000000004', 'done', (now() AT TIME ZONE 'Asia/Bangkok')::date - 17);
+  RAISE EXCEPTION 'FAIL 22: บันทึกทำแล้วซ้ำในนัดเดียวกันได้';
+EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'OK 22: นัดหนึ่งครั้งมีบันทึกทำแล้วได้แถวเดียว';
+END $$;
+
+-- 23. รายการที่ผูกกับบันทึกแก้ทับไม่ได้ ต้องเอาออกแล้วเพิ่มใหม่
+DO $$ BEGIN
+  UPDATE practice_log_students SET observation = 'แก้ทับ' WHERE id = '86100000-0000-4000-8000-000000000001';
+  RAISE EXCEPTION 'FAIL 23: แก้ข้อสังเกตทับได้';
+EXCEPTION WHEN insufficient_privilege THEN RAISE NOTICE 'OK 23: รายการที่ผูกกับบันทึกแก้ทับไม่ได้';
+END $$;
+
+-- 24. เอานักเรียนออกจากบันทึกแล้ว ประวัติยังอยู่
+DO $$
+DECLARE total integer; active integer;
+BEGIN
+  SELECT count(*), count(*) FILTER (WHERE removed_at IS NULL) INTO total, active
+  FROM practice_log_students
+  WHERE practice_log_id = '86000000-0000-4000-8000-000000000002' AND student_id = 'e1000000-0000-4000-8000-000000000003';
+  IF total <> 2 OR active <> 1 THEN RAISE EXCEPTION 'FAIL 24: มี % แถว ใช้งานอยู่ % แถว (คาดว่า 2 และ 1)', total, active; END IF;
+  RAISE NOTICE 'OK 24: แก้รายการที่ผูกกับบันทึกแล้วประวัติเดิมยังอยู่';
+END $$;
+
+-- 25. version ที่เลือกใช้ต้องเป็นของแผนเดียวกัน
+DO $$ BEGIN
+  INSERT INTO development_plans (id, owner_user_id, title) VALUES
+    ('72000000-0000-4000-8000-000000000099', 'a1000000-0000-4000-8000-000000000007', 'แผนทดสอบ');
+  INSERT INTO development_plan_versions (id, development_plan_id, version_no, source, created_by) VALUES
+    ('73000000-0000-4000-8000-000000000099', '72000000-0000-4000-8000-000000000099', 1, 'teacher', 'a1000000-0000-4000-8000-000000000007');
+  UPDATE development_plans SET current_version_id = '73000000-0000-4000-8000-000000000099'
+   WHERE id = '72000000-0000-4000-8000-000000000001';
+  RAISE EXCEPTION 'FAIL 25: เลือก version ของแผนอื่นได้';
+EXCEPTION WHEN foreign_key_violation THEN RAISE NOTICE 'OK 25: version ที่เลือกใช้ต้องเป็นของแผนเดียวกัน';
+END $$;
+
+-- 26. งานแจ้งเตือนต้องมีผู้รับแบบเดียว (บัญชีผู้ใช้ หรืออีเมลของคนที่ยังไม่มีบัญชี)
+DO $$ BEGIN
+  INSERT INTO notification_jobs (template_id, channel, dedupe_key, scheduled_for)
+  VALUES ('97000000-0000-4000-8000-000000000004', 'email', 'test:no-recipient', now());
+  RAISE EXCEPTION 'FAIL 26: สร้างงานแจ้งเตือนที่ไม่มีผู้รับได้';
+EXCEPTION WHEN check_violation THEN RAISE NOTICE 'OK 26: งานแจ้งเตือนต้องมีผู้รับ';
+END $$;
+
+-- 27. กิจกรรมทำครั้งเดียวต้องระบุวัน
+DO $$ BEGIN
+  INSERT INTO action_items (action_plan_id, item_type, title)
+  VALUES ('83000000-0000-4000-8000-000000000001', 'custom', 'ไม่มีวันและไม่มี RRULE');
+  RAISE EXCEPTION 'FAIL 27: สร้างกิจกรรมที่ไม่มีทั้งวันและ RRULE ได้';
+EXCEPTION WHEN check_violation THEN RAISE NOTICE 'OK 27: กิจกรรมทำครั้งเดียวต้องระบุวัน';
 END $$;
 
 SELECT organization_id, active_members, teachers_with_cases, canvases, active_action_plans, practice_done_30d

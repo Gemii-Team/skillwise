@@ -37,9 +37,9 @@
 - ทุก action ต้อง login และเป็นครูในโครงการ · ครู type 3 ผ่าน whitelist ได้แค่ `index`, `previewAi`, `getByoaPrompt` (`canvasController.php:55-61`; `console.php:110`)
 - **สร้าง:** ครู type 1 และ 2 (`canvasController.php:1083-1088, 1327-1330`)
 - **แก้/ลบ:** เจ้าของ (`sc_create_person_id`) เท่านั้น ผู้ประสานงานหลักก็แก้ใบของคนอื่นไม่ได้ (`:1372-1375, 1486-1489`)
-- **ดู:** ครูทุกคนในโรงเรียน รวม type 3 เห็นทุกใบพร้อมชื่อผู้เขียน และเปิดดูใบของคนอื่นแบบอ่านอย่างเดียว (`console.php:1014-1031`; `canvasController.php:1134-1138, 1158`)
+- **ดู:** ครูทุกคนในโรงเรียน รวม type 3 เห็นการ์ดทุกใบใน Pool พร้อมชื่อผู้เขียน (`console.php:1014-1031`) · ครู type 1/2 เปิดดูใบของคนอื่นแบบอ่านอย่างเดียว (`canvasController.php:1134-1138, 1158`) · type 3 เปิดใบไม่ได้เพราะ `editForm` ไม่อยู่ใน whitelist แต่ยังเรียก `getByoaPrompt` ดึงเนื้อหาเต็มของทุกใบในโรงเรียนได้ (`:1006-1030`)
 - ทุก action ที่อ้าง id ตรวจว่าแถวเป็นของโรงเรียนและปีเดียวกัน (`:1127-1132, 1369-1371, 1483-1485`)
-- **เลือกใบไปให้ AI:** ผู้ประสานงานหลักเท่านั้น (`:109`)
+- **เลือกใบไปให้ AI:** ผู้ประสานงานหลักเท่านั้น (`:109`, ตรวจซ้ำที่ server `:534-536`)
 
 ## 3. ข้อมูลในระบบเดิม
 
@@ -51,7 +51,7 @@
 | หัวเรื่อง | `sc_title` varchar 255 (ประเด็นท้าทาย) · `sc_target` varchar 120 (กลุ่มเป้าหมาย ข้อความอิสระ ไม่บังคับ) · `sc_scope_id` FK → `canvas_scope` |
 | 7 ช่อง | varchar 800 ต่อช่อง |
 | คะแนน | `sc_score` decimal(4,1) · `sc_score_c1`–`sc_score_c7` decimal(2,1) ขั้นละ 0.5 · `sc_last_score` |
-| สถานะคิว | `sc_score_status` 0 รอเขียนให้เสร็จ / 1 รอผลวิเคราะห์ / 2 กำลังวิเคราะห์ / 3 วิเคราะห์แล้ว (`2026-07-25_...status_shift.sql:2-7`) |
+| สถานะคิว | `sc_score_status` 0 รอเขียนให้เสร็จ / 1 รอผลวิเคราะห์ / 2 กำลังวิเคราะห์ / 3 วิเคราะห์แล้ว (`docs/schema/migrations/2026-07-25_school_canvas_score_status_shift.sql:2-7`) |
 
 - `canvas_scope` เป็นตาราง lookup (id 1–3) แต่ไอคอนและการแปลงเป็น `individual/group/classroom` hard-code ตาม id (`console.php:971-979`; `canvasController.php:949`)
 - FK มีแค่ไป `canvas_scope` ไม่มี FK ไปโรงเรียน ผู้เขียน หรือแผน (study 1.2)
@@ -61,8 +61,8 @@
 | ป้าย | เงื่อนไข | ข้อความบนการ์ด |
 |---|---|---|
 | S0 | status 0 | รอเขียนให้เสร็จ (บอกเลขช่องที่ว่าง) |
-| S1 | status 1–2 และไม่มี `sc_last_score` | รอผลการวิเคราะห์ (ภายใน 2 วัน) |
-| S4 | status 1–2 และมี `sc_last_score` | รอผลตรวจฉบับแก้ (แสดงคะแนนเดิม) |
+| S1 | status 1–2 (หรือ 3 ที่ `sc_score` ว่าง) และไม่มี `sc_last_score` | รอผลการวิเคราะห์ (ภายใน 2 วัน) |
+| S4 | status 1–2 (หรือ 3 ที่ `sc_score` ว่าง) และมี `sc_last_score` | รอผลตรวจฉบับแก้ (แสดงคะแนนเดิม) |
 | S3 | status 3, รวม < 7 | ปรับอีกนิด |
 | S6 | status 3, รวม ≥ 7 แต่คะแนนรายช่องไม่ครบ | ต้องตรวจใหม่ |
 | S5 | status 3, รวม ≥ 7, ช่อง 1 < เกณฑ์ | เกือบพร้อมใช้ทำแผน |
@@ -103,7 +103,7 @@ stateDiagram-v2
 9. ตอนส่งแผนตรวจและตอนแปลงเป็นแผนลงมือทำ ทุกใบในแผนต้องเป็น S2 (`planController.php:566`; `actionPlanController.php:2031`)
 10. ช่องเลือก "ทำแผน" แสดงเฉพาะใบ S2 และเลือกได้ไม่เกิน 5 ใบ (`canvasController.php:8, 368-374`; `console-canvas.js:6, 41-45`)
 11. แก้หรือลบใบที่อยู่ในแผนพัฒนา: แผน "รอตรวจ" → ยกเลิกการส่ง · "ผ่าน" → "ไม่ผ่าน" พร้อมเขียน note ให้ฝั่งแอดมิน (`canvasController.php:1391-1435`)
-12. ก่อนบันทึกใบที่มีคะแนนแล้ว (S2/S3/S6) หรือใบที่อยู่ในแผน ต้องยืนยันว่าคะแนนเดิมจะถูกแทนและผลต่อแผน (`:1197-1198, 1216-1225`; `console-canvas.js:400-412`)
+12. ก่อนบันทึกใบที่มีคะแนนแล้ว (S2/S3/S6 · ใบ S5 ก็มีคะแนนแต่ไม่ถูกถาม) หรือใบที่อยู่ในแผน ต้องยืนยันว่าคะแนนเดิมจะถูกแทนและผลต่อแผน (`:1197-1198, 1216-1225`; `console-canvas.js:400-412`)
 13. **ล็อก** เมื่อแผนลงมือทำเปิดใช้ (`sap_status` = 1) เพิ่ม แก้ ลบ และให้ AI สรุปใหม่ไม่ได้ (`console.php:2144-2148`; `canvasController.php:103-104, 1089-1091, 1331-1333, 1490-1492`)
 14. ช่อง 7 ถูกแตกเป็น "สัญญาณ" ตามบรรทัดหรือ " · " สูงสุด 6 บรรทัด บรรทัดละ ≤ 80 ตัว ใช้เป็นตัวเลือกตอนบันทึกรายสัปดาห์ (`console.php:1667-1677`)
 15. Pool เรียงตามแก้ไขล่าสุด และกรองตามขอบเขตได้ (`console.php:1020`; `console-canvas.js:21-33`)
@@ -138,11 +138,11 @@ stateDiagram-v2
 
 - **เขียนทับเนื้อหาโดยไม่มีประวัติ:** เก็บไว้แค่คะแนนรวมรอบก่อน ทั้งที่ 57% ของ Canvas ถูกแก้หลังได้คะแนน (study 3.1, 7.1 ข้อ 4)
 - **7 ช่องและคะแนน 7 ช่องเป็นคอลัมน์ตายตัว** คะแนนเต็มอยู่ในค่าคงที่ และเลข 7 / 5 ซ้ำใน JS (`console.php:1105`; `console-canvas.js:6-7`; `canvasController.php:8`) — ขัดข้อ 45, 47
-- **ผูกช่อง 4 กับ 7 กิจวัตร** ทั้งคำถามในฟอร์มและป้ายที่ส่งให้ AI — ขัดข้อ 9, 53
+- **ผูกช่อง 4 กับ 7 กิจวัตร** ทั้งคำถามในฟอร์ม ป้ายในหน้าทวนก่อนส่ง AI และ prompt ที่ให้ copy ไป AI ภายนอก (`canvasController.php:1280, 583, 1059`) — ขัดข้อ 9, 53
 - **การให้คะแนนทั้งหมดอยู่นอกระบบ** (batch กลางคืน, AI ตัวที่สองตรวจซ้ำ, คนตรวจในเครื่องมือภายนอก, อีเมล) และเปลี่ยนความหมายของสถานะต้อง deploy สองระบบพร้อมกัน (`2026-07-25_...:9-10`) — ขัดข้อ 60.10.4 ข้อ 2
 - **ผูกนักเรียนด้วยข้อความ:** `sc_target` เป็น free text และรายงานหานักเรียนด้วย substring (study 3.6)
-- **ชวนให้พิมพ์ชื่อเด็กใน free text:** placeholder ใช้ชื่อเด็ก (`canvasController.php:1251, 1257`) แล้วข้อความทั้งหมดถูกส่งไปตัวให้คะแนนและ AI โดยไม่ pseudonymize พร้อมชื่อจริงของครู (`:954-955, 962-981`) — ขัดข้อ 60.2
-- **ลิงก์ออกไป AI ภายนอก:** ปุ่ม "โค้ช Canvas (AI)" ไปที่ custom GPT ภายนอก (`:146`) และ endpoint สร้าง prompt ให้ copy ไปวาง AI อื่น ยังเรียกได้แม้ซ่อน UI (`:122, 1006-1078`)
+- **ชวนให้พิมพ์ชื่อเด็กใน free text:** placeholder ใช้ชื่อเด็ก (`canvasController.php:1251, 1257`) แล้วข้อความทั้งหมดถูกส่งให้ AI สังเคราะห์แผนโดยไม่ pseudonymize พร้อมชื่อจริงของครู (`:954-955, 962-981`) ส่วนตัวให้คะแนนภายนอกก็ดึงข้อความดิบจาก `school_canvas` ไปเช่นกัน (โค้ดอยู่นอก repo) — ขัดข้อ 60.2
+- **ลิงก์ออกไป AI ภายนอก:** การ์ด "โค้ชที่ปรึกษาการเขียน Canvas (AI)" ลิงก์ไป custom GPT ภายนอก (`:146, 173-180`) และ endpoint สร้าง prompt ให้ copy ไปวาง AI อื่น ยังเรียกได้แม้ซ่อน UI และครู type 3 ก็เรียกได้ (`:122, 1006-1078`; `console.php:110`)
 - **แก้ Canvas แล้วไปเปลี่ยนสถานะแผนบนแถว `school_training`** เป็น side effect (`:1419-1435`) แทนการผูก plan version กับ canvas revision
 - ไม่ตรวจความยาว 7 ช่องที่ server
 
@@ -152,39 +152,39 @@ stateDiagram-v2
 
 | ระบบเดิม | SkillWise |
 |---|---|
-| นิยาม 7 ช่อง, ความยาว 800, คะแนนเต็ม, คำถามนำ | `tools` → `tool_versions` → `tool_fields` (label, prompt, ลำดับ, max_length, max_score) |
-| เกณฑ์ 7 และช่อง 1 ≥ 1.5 | config ของ `tool_versions` (คะแนนรวมขั้นต่ำ, ขั้นต่ำรายช่อง) · จะใช้เป็นด่านหรือไม่ยัง OPEN |
-| `sc_title` + `sc_scope_id` (+ `canvas_scope`) | `cases` (ประเด็นท้าทาย + scope ที่เป็นข้อมูล รองรับ scope อื่นในอนาคต ข้อ 13) |
-| `sc_target` (ข้อความ) | `case_targets` (relation ไป `students` หรือ `org_units`) ไม่บังคับ |
-| `sc_project_id`, `sc_school_id`, `sc_create_person_id` | `canvases` (owner user, organization ว่างได้สำหรับครูอิสระ ข้อ 34) |
+| นิยาม 7 ช่อง, ความยาว 800, คะแนนเต็ม, คำถามนำ | `tools` → `tool_versions` → `tool_fields` (`label`, `help_text`, `sort_order`, `is_required`, `max_score` · ความยาวสูงสุดและ placeholder อยู่ใน `config`) |
+| เกณฑ์ 7 และช่อง 1 ≥ 1.5 | `tool_versions.settings` (`readiness.min_total_score`, `readiness.min_field_scores`, `readiness.enforced` = false ใน seed) · จะใช้เป็นด่านหรือไม่ยัง OPEN |
+| `sc_title` + `sc_scope_id` (+ `canvas_scope`) | `cases` (`title`, `situation`, `impact` + `scope` = individual / group / classroom / other · ข้อ 13) |
+| `sc_target` (ข้อความ) | `case_targets` (relation ไป `students` หรือ `org_units` หรือ `label` ที่ห้ามใส่ชื่อจริง) ไม่บังคับ |
+| `sc_project_id`, `sc_school_id`, `sc_create_person_id` | `canvases.author_user_id` + `cases.owner_user_id` / `cases.organization_id` (ว่างได้สำหรับครูอิสระ ข้อ 34) |
 | 7 คอลัมน์เนื้อหา + `sc_lastmodified*` | `canvas_revisions` (ทุกการแก้ = revision ใหม่ แก้ไม่ได้) + `canvas_field_values` |
 | `sc_score`, `sc_score_c1`–`c7` | `canvas_feedbacks` (source ai / coach / self ต่อ revision) + `canvas_feedback_items` (คะแนน + คอมเมนต์รายช่อง) |
 | `sc_last_score` | ไม่ต้องมี ใช้ feedback ของ revision ก่อนหน้า |
-| `sc_score_status` | คำนวณจากความครบของ revision + สถานะ `ai_jobs` ที่ผูกผ่าน `ai_job_canvas_revisions` |
-| `canvasSignalLines` | `success_signals` (หนึ่งแถวต่อสัญญาณ ผูกกับ revision) |
-| ล็อกด้วย `sap_status` | `development_plan_canvases` อ้าง `canvas_revision_id` → `action_plans` snapshot · revision ที่ถูกอ้างแก้ไม่ได้อยู่แล้ว |
+| `sc_score_status` | `canvases.status` (draft / ready / locked / archived) + สถานะ `ai_jobs` ที่ผูกผ่าน `ai_job_canvas_revisions` + `canvas_feedbacks.status` (draft / published / discarded) |
+| `canvasSignalLines` | `success_signals` (หนึ่งแถวต่อสัญญาณ ผูกกับ `canvases` และ revision ต้นทาง `source_revision_id`) |
+| ล็อกด้วย `sap_status` | `action_plans.plan_version_id` → `development_plan_canvases.canvas_revision_id` เป็น snapshot · revision แก้ไม่ได้อยู่แล้ว · มี `canvases.status` = locked + `locked_at` / `lock_reason` ไว้ถ้าทีมยืนยันให้ล็อก (หัวข้อ 10 ข้อ 4) |
 
 **Permission ที่ endpoint ต้องประกาศ**
 
-- สร้าง/แก้/ลบ/ดู Canvas ของตัวเอง: `self.tools.use` + ตรวจเจ้าของที่ server + entitlement ของ feature
-- ขอ AI feedback: `self.ai.request` + บันทึก `usage_ledger` (งานล้มเหลวไม่หักเครดิต)
+- สร้าง/แก้/ลบ/ดู Canvas ของตัวเอง: `self.tools.use` + ตรวจเจ้าของที่ server + entitlement ของ feature `tool.canvas`
+- ขอ AI feedback: `self.ai.request` + feature `ai.canvas_feedback` + บันทึก `usage_ledger` (งานล้มเหลวไม่หักเครดิต)
 - โค้ช: `coach.cases.view_assigned` (เห็นเฉพาะ case ที่ได้รับมอบหมาย) · `coach.feedback.write` (เขียน `canvas_feedbacks` source = coach)
-- ผู้บริหารองค์กร: `org.dashboard.view_aggregate` เห็นแค่ตัวเลขรวม ไม่เห็นเนื้อหา Canvas (ข้อ 31, 60.3)
+- ผู้บริหารองค์กร: `org.dashboard.view_aggregate` เห็นตัวเลขรวม (view `org_activity_summary`) · เนื้อหา Canvas ไม่ได้กันด้วยบทบาท แต่เห็นได้เฉพาะ case ที่ตั้ง `visibility` = organization ซึ่งค่าเริ่มต้นเป็น private (ข้อ 31, 60.3 · หัวข้อ 10 ข้อ 3)
 - แอดมิน: ดูเนื้อหาที่มีข้อมูลนักเรียนด้วย `admin.sensitive.student.view` + `audit_logs` · ดูงาน AI ด้วย `admin.ai_jobs.view`
-- การเห็น Canvas ของครูคนอื่นในองค์กร (Pool) รอผลข้อ 3 ในหัวข้อ 10
+- การเห็น Canvas ของครูคนอื่นในองค์กร (Pool) รอผลข้อ 3 ในหัวข้อ 10 · ร่าง schema เริ่มที่ `cases.visibility` = private
 
 **สิ่งที่ต้องเปลี่ยนจากระบบเดิม**
 
 - **ช่องเป็นข้อมูล:** ชื่อช่อง 4 ใช้คำกลาง "Routine / Practice" (ข้อ 7) และ 7 กิจวัตรเป็นแค่ practice set ชุดหนึ่งที่เลือกได้ (ข้อ 9)
-- **ทุกการแก้เป็น revision ใหม่** feedback ผูกกับ revision จึงไม่มีปัญหาคะแนนของฉบับเก่าไปติดฉบับใหม่ และเห็นพัฒนาการของ Canvas ได้ (ข้อ 12)
+- **ทุกการแก้เป็น revision ใหม่** feedback ผูกกับ revision จึงไม่มีปัญหาคะแนนของฉบับเก่าไปติดฉบับใหม่ และเห็นพัฒนาการของ Canvas ได้ (ข้อ 14 Feedback → Revision)
 - **AI feedback ทำในระบบผ่าน `ai_jobs` (BullMQ)** ไม่ผ่านเครื่องมือภายนอก · input เป็น snapshot ที่ pseudonymize แล้ว · ตรวจผล AI ก่อนแสดง เช่น คะแนนไม่เกินคะแนนเต็มรายช่อง และรวมแล้วตรงกับคะแนนรวม (ข้อ 60.10.4 ข้อ 2)
 - **คอมเมนต์รายช่องเก็บใน `canvas_feedback_items`** แสดงในระบบ ไม่ส่งทางอีเมลอย่างเดียว
-- **AI เป็นผู้ช่วย:** แสดงผลเป็น feedback ให้ครูตัดสินเอง (ข้อ 12) · การใช้คะแนนเป็นด่านก่อนทำแผนยัง OPEN ระบบต้องเปิด/ปิดด่านได้จาก config
+- **AI เป็นผู้ช่วย:** แสดงผลเป็น feedback ให้ครูตัดสินเอง (ข้อ 12) · การใช้คะแนนเป็นด่านก่อนทำแผนยัง OPEN ระบบต้องเปิด/ปิดด่านได้จาก config (`settings.readiness.enforced`)
 - **ตัดชื่อจริงก่อนส่ง AI ทุกครั้ง** ทั้งชื่อนักเรียนใน `case_targets` และชื่อที่พิมพ์ปนใน free text รวมถึงชื่อครู แล้วแปลงกลับตอนแสดงผล (ข้อ 60.2) · placeholder ห้ามชวนให้ใส่ชื่อเด็ก
 - **ผูกนักเรียนด้วย relation และไม่บังคับ** สร้าง Canvas ได้โดยยังไม่มีรายชื่อนักเรียน (study 7.1 ข้อ 6)
 - ตรวจข้อมูลด้วย Zod ใน `packages/shared` ทั้งสองฝั่ง ความยาวและช่องบังคับอ่านจาก `tool_fields`
 - ไม่ลิงก์ไป AI ภายนอก และไม่มี endpoint ที่สร้าง prompt พร้อมข้อมูลจริงให้ copy ออกไป
-- จำนวน Canvas สูงสุดต่อการสังเคราะห์แผน (5) เป็น config ไม่ hard-code (ข้อ 13) — รายละเอียดอยู่ใน spec AI สังเคราะห์แผน
+- จำนวน Canvas สูงสุดต่อการสังเคราะห์แผน (5) เป็น config ไม่ hard-code (`settings.synthesis.max_canvases` · ข้อ 13) — รายละเอียดอยู่ใน spec AI สังเคราะห์แผน
 - ลบแบบ soft delete และห้ามลบ revision ที่แผนอ้างอยู่
 
 ## 10. คำถามที่ยัง OPEN

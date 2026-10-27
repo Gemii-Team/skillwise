@@ -17,7 +17,7 @@ repo นี้มีงานแจ้งเตือนและเนื้อ
 1. **ส่งอีเมลทันทีใน request** ผ่าน SMTP · จุดที่ใช้ในชุดไฟล์นี้คืออีเมลเชิญครูเข้าทีม (`teamController.php:295-319`)
 2. **ลิงก์นับคลิก `/t/{token}`** ของข้อความที่หลังบ้านกลางส่ง: ถอด token → บันทึกคลิก → redirect ไป URL ที่เก็บใน DB (`redirectController.php:36-87`)
 3. **ฟังก์ชันส่ง LINE push** ข้อความล้วน ไม่มีผู้เรียกใน repo (`global-master.php:1907-1927`)
-4. **แจ้งกลุ่ม Telegram ของทีมงาน** เมื่อโรงเรียนสมัคร, ครูเชื่อม LINE, Zoom API error และ helper สำหรับช่อง error (`global.php:3920-3946`)
+4. **แจ้งกลุ่ม Telegram ของทีมงาน** เมื่อโรงเรียนสมัคร, ครูผู้ช่วยสมัครเข้าโรงเรียน, ครูเชื่อม LINE, Zoom API error และ helper สำหรับช่อง error (`global.php:3920-3946`)
 5. **หน้า "ข่าวสารและบทความ"** อ่านได้โดยไม่ต้อง login: หน้ารวม, รายการตามประเภท, รายละเอียด, ยอดนิยม (`module/news/controller/*.php`) · การสร้าง/แก้/ปักหมุด/ลบข่าวอยู่ในระบบแอดมิน
 
 **สิ่งที่อยู่นอก repo (ไม่ได้อ่านโค้ด สรุปจาก study 5.2):** ระบบ "กฎ → คิว → ส่ง → log" ของ email และ LINE อยู่ที่หลังบ้านกลาง RGT ซึ่งใช้ฐานข้อมูลเดียวกัน
@@ -93,15 +93,15 @@ stateDiagram-v2
 2. `sendEmail` เลือก mailer และชุด config ได้ (รองรับหลายผู้ส่ง) และล้างผู้รับ/ไฟล์แนบเดิมทุกครั้งเพราะเป็น singleton — `global-master.php:1736-1748`
 3. ผู้ส่ง (from) มาจาก config เท่านั้น — `global-master.php:1760-1762`
 4. ส่งเป็น HTML พร้อม AltBody = ตัด tag ออก — `global-master.php:1812-1815`
-5. ไม่ throw ออกไป คืนผล success / message / error และเขียน error_log — `global-master.php:1817-1849`
-6. อีเมลเชิญส่งใน request ไม่มีคิว ไม่มี log ไม่ดูผลลัพธ์ และแจ้งผู้ใช้ว่า "ส่งคำเชิญเรียบร้อย" เสมอ — `teamController.php:311-319`
+5. ไม่ throw ออกไป คืนผล success / message / error · เขียน error_log เฉพาะกรณีเกิด exception (ส่งไม่สำเร็จแบบปกติไม่ log) — `global-master.php:1817-1849`
+6. อีเมลเชิญส่งใน request ไม่มีคิว ไม่มี log ไม่ดูผลลัพธ์ และแจ้งผู้ใช้ว่า "เพิ่มทีมงานและส่งคำเชิญด้วย Email เรียบร้อยแล้ว" เสมอ — `teamController.php:311-319`
 
 **ลิงก์นับคลิกและ token ที่เซ็น**
 7. route `/t/:var` → `home/redirect/index` — `routes.php:6`
 8. token = `encode([queue id, timestamp])` ด้วย context ของระบบ (สร้างที่หลังบ้านกลาง) · ตอนถอดยอมรับคีย์รุ่นเก่าด้วย เพราะลิงก์ที่ส่งไปแล้วเรียกคืนไม่ได้ — `redirectController.php:38-47`
 9. อายุลิงก์ 30 วัน นับจาก timestamp ใน token — `redirectController.php:52-57`
 10. ต้องพบแถวในคิว แล้วจึงบันทึกคลิกลง log — `redirectController.php:59-67` (ฟังก์ชันบันทึกอยู่ใน `library/module/home.php` ซึ่งไม่อยู่ในชุดไฟล์ที่อ่าน)
-11. ปลายทาง: URL ของ round notification ถ้ามี · ไม่งั้น URL ของ rule · ไม่งั้นหน้าแรกของเว็บที่ hard-code ไว้ — `redirectController.php:69-86`
+11. ปลายทาง: คิวที่อ้าง round ใช้ URL ของ round · คิวที่ไม่อ้าง round แต่อ้าง rule ใช้ URL ของ rule · ค่าว่างหรือไม่อ้างอะไร = หน้าแรกของเว็บที่ hard-code ไว้ (คิวที่อ้าง round แต่ URL ว่าง ไม่ตกไปใช้ URL ของ rule) — `redirectController.php:69-86`
 12. ไม่ผ่านเงื่อนไขใด → แสดงหน้า "หมดอายุ" — `redirectController.php:89-94`
 13. `encode` = บีบอัด + HMAC-SHA1 + base64url (เซ็นแต่ไม่เข้ารหัส ไม่มีวันหมดอายุในตัว) · คีย์ต่อ context = HMAC(context, secret ฝั่ง server) — `global-master.php:2677-2719`
 14. ถ้าไม่ได้ตั้ง secret ระบบ derive คีย์จากค่าเชื่อมต่อฐานข้อมูล — `global-master.php:2712-2715`
@@ -117,7 +117,7 @@ stateDiagram-v2
 20. ส่งแบบ HTML parse mode · connect timeout 3 วินาที รวม 6 วินาที · ล้มเหลว = error_log แล้วคืน false ไม่ทำให้ flow หลักล้ม — `global-master.php:1857-1906`
 21. `sendTelegramTo(ชื่อช่อง)` อ่าน token และ chat id ตามชื่อช่องจาก config, escape ข้อความทั้งก้อน, ไม่ได้ตั้งค่า = log แล้วข้าม — `global.php:3930-3946`
 22. `sendErrorTelegram` ส่งเข้าช่อง error **โดยไม่ escape** — `global.php:3920-3928` · ไม่พบผู้เรียกในชุดไฟล์ที่อ่าน
-23. จุดที่เรียกในชุดไฟล์ที่อ่าน: Zoom API error (`global.php:655-658`) · ครูเชื่อม LINE พร้อมชื่อ-นามสกุล (`liffController.php:177-183`) · โรงเรียนสมัครพร้อมชื่อผู้ประสานงาน ห้อง และจำนวนนักเรียน ข้ามเมื่อรันในเครื่อง (`registerController.php:1150-1162`)
+23. จุดที่เรียกในชุดไฟล์ที่อ่าน: Zoom API error (`global.php:655-658`) · ครูเชื่อม LINE พร้อมชื่อ-นามสกุล (`liffController.php:177-183`) · โรงเรียนสมัครพร้อมชื่อผู้ประสานงาน ห้อง และจำนวนนักเรียน ข้ามเมื่อรันในเครื่อง (`registerController.php:1145-1166`) · ครูผู้ช่วยสมัครเข้าโรงเรียนพร้อมชื่อ ห้อง และจำนวนนักเรียน (`registerController.php:1718-1739`)
 
 **ข่าว**
 24. รายการไม่แสดงสถานะ 0 และ 9 · ปักหมุดขึ้นก่อน แล้วเรียงวันที่ใหม่สุด · หน้ารวมแสดง 6 ข่าวต่อประเภท 1–4 · ยอดนิยม 5 ข่าวตามยอดเปิด — `news.php:29-91`, `indexController.php:37-50`
@@ -172,32 +172,32 @@ stateDiagram-v2
 
 | ระบบเดิม | SkillWise |
 |---|---|
-| กฎ 3 แหล่ง (`mail_notification_rule`, `mail_round_notification`, `mail_rule_timeline`) | ค่าเตือนบน `action_items` (reminder + RRULE) และ occurrence ใน `practice_sessions` → BullMQ scheduler สร้าง `notification_jobs` · กฎระดับระบบเก็บเป็น config หรือ template |
-| `mail_task_queue` | `notification_jobs` (channel, ผู้รับเป็น user ไม่ใช่อีเมลดิบ, scheduled_at, status, attempts, dedupe key แบบ UNIQUE, payload snapshot) |
-| `mail_notification_log` | `notification_events` (sent / failed / open / click) ผูกกับ job |
+| กฎ 3 แหล่ง (`mail_notification_rule`, `mail_round_notification`, `mail_rule_timeline`) | ค่าเตือนบน `action_items` (`reminder_offset_minutes` + `recurrence_rule`) และ occurrence ใน `practice_sessions` → BullMQ scheduler สร้าง `notification_jobs` · กฎระดับระบบเก็บเป็น config หรือ template |
+| `mail_task_queue` | `notification_jobs` (`channel` email/line/in_app, ผู้รับเป็น `user_id` · อีเมลดิบใน `recipient_email` ใช้เฉพาะคำเชิญถึงคนที่ยังไม่มีบัญชี (ข้อ 7), `scheduled_for`, `status`, `attempts`, `dedupe_key` UNIQUE, `payload`, `practice_session_id`) |
+| `mail_notification_log` | `notification_events` (`sent` / `delivered` / `opened` / `clicked` / `failed`) ผูกกับ job |
 | `mail_template_draft` / `_history` | `notification_templates` (มีเวอร์ชัน · job อ้างเวอร์ชันที่ใช้ แบบเดียวกับ `mnl_mth_id`) |
-| `user.user_line_*` + `line_link_tokens` | `user_identities` (LINE login และ messaging) |
+| `user.user_line_*` + `line_link_tokens` | `user_identities` (provider `line` · `can_receive_messages` · `unlinked_at`) |
 | `news` / `news_content` / `news_type` / `stat` | `contents` (สถานะอนุมัติ/เผยแพร่) + `files` (เปิดสาธารณะเฉพาะไฟล์ของ content ที่เผยแพร่แล้ว) · สถิติคำนวณจากข้อมูลจริง (ข้อ 26) |
 | Telegram | ไม่นำมา (study หัวข้อ 8) · ใช้ระบบ log/alert ของ hosting ที่ไม่มีข้อมูลส่วนบุคคล |
 | การแก้/เผยแพร่ content และส่งแจ้งเตือนแบบ manual | `audit_logs` |
 
 **Permission ที่ endpoint น่าจะต้องประกาศ**
 - สร้าง / แก้ / อนุมัติ / เผยแพร่ content: `admin.content.manage` [Should]
-- ตั้งค่าแจ้งเตือนของตัวเอง (ช่องทาง, ปิดรับ): `self.profile.manage` · ตั้งเตือนบน action item ของตัวเอง: `self.tools.use`
-- ดู delivery log ของระบบ: `admin.audit.view` (ชั่วคราว จนกว่าจะมี permission เฉพาะ)
+- ตั้งค่าแจ้งเตือนของตัวเอง (ช่องทาง, ปิดรับ): `self.profile.manage` (ที่เก็บค่าตั้งรายคนยังไม่มีใน schema MVP) · ตั้งเตือนบน action item ของตัวเอง: `self.tools.use`
+- จัดการแม่แบบและดูผลการส่งของระบบ: `admin.notifications.manage`
 - ลิงก์นับคลิกและหน้า content ที่เผยแพร่แล้ว: เป็น public endpoint ที่ต้องประกาศชัดว่าเปิดสาธารณะ (ค่าเริ่มต้นของ guard คือปฏิเสธ)
 - LINE webhook (Later #18b): public endpoint ที่ตรวจลายเซ็นของ LINE ทุก request
 
 **สิ่งที่ต้องเปลี่ยนจากระบบเดิมตาม Context**
 1. ทั้ง pipeline อยู่ใน `apps/api` (BullMQ + Redis) ไม่มีตัวส่งภายนอกที่เขียนฐานข้อมูลเดียวกัน
-2. LINE เป็นช่องทางหลัก (60.10.6, study 7.1 #7) · ส่งเฉพาะผู้ใช้ที่เชื่อมอยู่และไม่ได้บล็อก · email เป็นทางสำรอง
+2. LINE เป็นช่องทางหลัก (60.10.6 [DIRECTION], study 7.1 #7) · ส่งเฉพาะผู้ใช้ที่เชื่อมอยู่และไม่ได้บล็อก (`user_identities.unlinked_at` เป็น null และ `can_receive_messages` = true) · email จะเป็นทางสำรองหรือไม่ยัง OPEN (ข้อ 10 #2)
 3. เตือนผูกกับ action item (#18): สร้าง job ตาม occurrence และค่าเตือน · เลื่อน session แล้ว reschedule · บันทึก "ทำแล้ว" แล้วยกเลิก job ที่ค้าง
 4. กันซ้ำด้วย dedupe key แบบ UNIQUE เช่น (ประเภท, practice_session, ผู้รับ, ช่องทาง) + worker แบบ idempotent + retry แบบ backoff
-5. ลิงก์นับคลิก: token สุ่มแบบ opaque ต่อ job (เก็บ hash) หรือเซ็นพร้อมวันหมดอายุ · ปลายทางเก็บต่อ job และต้องเป็น path ภายในหรือ allowlist · ไม่มีโหมดคีย์เก่า · หน้าหมดอายุตอบ 410
+5. ลิงก์นับคลิก: token สุ่มแบบ opaque ต่อ job เก็บแค่ hash ใน `notification_jobs.click_token_hash` · ปลายทางเก็บต่อ job ใน `target_url` และต้องเป็น path ภายในหรือ allowlist · ไม่มีโหมดคีย์เก่า · หน้าหมดอายุตอบ 410
 6. ข้อความที่ออกไปทาง LINE/email ไม่ใส่ชื่อนักเรียนหรือเนื้อหา reflection / coach feedback ใส่แค่ลิงก์กลับมาดูในระบบที่ตรวจสิทธิ์ (ข้อ 31, 60.2)
-7. อีเมลระบบ (เช่นคำเชิญ) เข้าคิวและมี event และหน้าจอบอกผลการส่งจริง
-8. Content: ไม่มีอะไรขึ้นสาธารณะโดยไม่ผ่านการอนุมัติ · API สาธารณะคืนเฉพาะสถานะ published (กันที่ API ไม่ใช่แค่ในรายการ) · sanitize HTML ฝั่ง server หรือใช้ block แบบมีโครงสร้าง · slug UNIQUE · ตั้งเวลาเผยแพร่ได้ · นับยอดเปิดแยก ไม่แตะ field ผู้แก้ล่าสุด · ประเภท content ตั้งค่าได้ ไม่ hard-code id
-9. Free Layer (ข้อ 27) ใช้ `contents` เป็นฐาน · ห้ามใช้ข้อความ "ศีล 5 / ความดี" เป็นข้อความหลักของ SkillWise (ข้อ 9)
+7. อีเมลระบบ (เช่นคำเชิญ) เข้าคิวและมี event และหน้าจอบอกผลการส่งจริง · อีเมลถึงคนที่ยังไม่มีบัญชีใช้ `notification_jobs.recipient_email` + `invitation_id` แทน `user_id` (CHECK ให้มีผู้รับแบบเดียว และใช้ได้กับช่องทาง email เท่านั้น) · ผลการส่งดูจาก `notification_events` ของงานนั้น
+8. Content: ไม่มีอะไรขึ้นสาธารณะโดยไม่ผ่านการอนุมัติ · API สาธารณะคืนเฉพาะสถานะ published (กันที่ API ไม่ใช่แค่ในรายการ) · sanitize HTML ฝั่ง server หรือใช้ block แบบมีโครงสร้าง · slug UNIQUE · ตั้งเวลาเผยแพร่ได้ (`publish_at`) · นับยอดเปิดแยก ไม่แตะ `updated_at` (ที่เก็บยอดเปิดยังไม่มีใน schema MVP) · ประเภท content ตั้งค่าได้ (`content_type` เป็นข้อความ) ไม่ hard-code id
+9. Free Layer (ข้อ 27) ใช้ `contents` เป็นฐาน · ไม่ต้องใช้คำ "ศีล 5 / คุณธรรม / ความดี" เป็นข้อความหลัก และเลี่ยงการสื่อว่า SkillWise มีแค่เรื่องศีล 5 (ข้อ 9, 10.2)
 10. ถ้าทำหลังบ้านสั่งงานด้วยแชทในอนาคต ต้องยืนยันก่อนเผยแพร่และใช้สิทธิ์ + audit ชุดเดียวกับหน้าแอดมิน (60.10.7)
 11. สร้าง QR ภายในระบบ ไม่ส่ง URL ให้บริการภายนอก
 

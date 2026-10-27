@@ -13,8 +13,8 @@
 ## 1. ฟีเจอร์นี้ทำอะไร
 
 - ผู้ประสานงานหลักติ๊กเลือก Canvas ที่ "พร้อมใช้ทำแผน" ได้ไม่เกิน 5 ใบ → เปิดหน้าทวนรายการ → ยืนยัน → ระบบส่งงานไปบริการ AI ภายนอกแบบ async แล้วได้ `job_id` กลับมา
-- หน้าเว็บ poll สถานะทุก 5 วินาที เมื่อสำเร็จ ระบบเขียนร่างลงแผนพัฒนาของโรงเรียน (`school_plan`) **ทับของเดิม** แล้วพาไปหน้าแผน (ดู spec 06)
-- AI มีหน้าที่ "ร้อยเรียง" ข้อความที่ครูเขียน ไม่แต่งข้อเท็จจริงเพิ่ม ไม่สร้างตัวเลข และเว้นช่องให้ครูเติมค่าเป้าหมายเอง (ข้อความบนหน้าจอ `canvasController.php:488-490`)
+- หน้าเว็บ poll สถานะทุก 5 วินาที เมื่อสำเร็จ ระบบเขียนร่างลงแผนพัฒนาของโรงเรียน (`school_plan`) **ทับของเดิม** แล้วขึ้นกล่องสำเร็จที่มีปุ่มไปหน้าแผน (`console-canvas.js:235-244` · ดู spec 06)
+- AI มีหน้าที่ "ร้อยเรียง" ข้อมูลที่ครูเขียน ไม่คาดเดาข้อเท็จจริง ไม่สร้างตัวเลข และไม่กำหนดเป้าหมายแทนครู (ข้อความบนหน้าจอ `canvasController.php:488-490`)
 - ผลลัพธ์ 5 ส่วน: p1 บริบท · p2 เป้าหมาย · p3 วิธีดำเนินงาน · p4 ผลลัพธ์ (แยกเชิงคุณภาพ / เชิงปริมาณ) · p5 จุดที่ครูต้องทบทวน พร้อม warnings และรายการ Canvas ที่ AI ใช้จริง
 - มี "ให้ AI ปรับใหม่" ด้วย Canvas ชุดเดิมได้อีก 2 ครั้งโดยไม่ตัดโควตา
 - โควตา 2 ครั้งต่อโรงเรียนต่อปีการศึกษา ใช้ร่วมกันทั้งโรงเรียน
@@ -59,7 +59,7 @@
 |---|---|---|
 | `convert_gate_failed` (HTTP 403 ตอนสั่ง) | บริการภายนอกตรวจซ้ำแล้วพบใบไม่ผ่านเกณฑ์ | ชื่อใบ + เหตุผล, "โควตายังไม่ถูกตัด" (`canvasController.php:307-326, 756-758`) |
 | `quality_check_failed` | AI สร้างร่างที่ผ่านการตรวจคุณภาพไม่ได้ | ลองใหม่หรือติดต่อแอดมิน |
-| provider overloaded / timeout | ผู้ให้บริการโมเดลหนาแน่นหรือหมดเวลา | ลองใหม่ใน 1–2 นาที |
+| provider overloaded / timeout | ผู้ให้บริการโมเดลหนาแน่นหรือหมดเวลา | หนาแน่น: ลองใหม่ใน 1–2 นาที · หมดเวลา: สื่อสารกับระบบ AI ผิดพลาด ให้ลองใหม่ |
 | `poison_pill` | งานพังซ้ำจนบริการตัดทิ้ง | ติดต่อแอดมิน |
 | `action_plan_locked` (ภายใน) | AI เสร็จหลังโรงเรียนแปลงเป็นแผนลงมือทำแล้ว | ไม่นำร่างมาใช้ (`canvasController.php:844-853`) |
 | อื่น ๆ เช่น `synthesis_failed` | — | ข้อความกลาง "เกิดข้อผิดพลาดในระบบ" |
@@ -143,6 +143,7 @@ headers   = Bearer token, X-Sila5-Timestamp: ts, X-Sila5-Signature: "v1=" + sign
 
 - **งาน `expired` นับเป็นร่างเดิม** เพราะตัวนับตัดเฉพาะ `failed` (`library/module/console.php:1206`) ผลคือ ถ้าครั้งแรกหมดอายุแล้วสั่งชุดเดิมใหม่จนสำเร็จ จะไม่ถูกตัดโควตา และงานที่หมดอายุกินสิทธิ์ "ปรับใหม่" ไปด้วย
 - **ปรับใหม่ไม่ตรวจโควตา** (`canvasController.php:678-714`) และถ้าร่างก่อนหน้าของชุดนั้นล้มเหลวทั้งหมด งานปรับใหม่ที่สำเร็จจะนับเป็นร่างแรกและตัดโควตา ทั้งที่ข้อความบอกว่า "ไม่ตัดโควตา" (`:777-779`)
+- **ปุ่ม "ให้ AI ปรับใหม่" ขึ้นเฉพาะในกล่องแจ้งงานล้มเหลว** (`console-canvas.js:246-256, 301-308`) ไม่มีหลังร่างสำเร็จ · ส่วนการสั่ง `runAi` ด้วยชุด Canvas เดิมซ้ำ (เมื่อโควตายัง > 0) ไม่ถูกนับเพดานปรับใหม่ และไม่ถูกตัดโควตาถ้ามีร่างที่ไม่ใช่ `failed` ของชุดนั้นอยู่แล้ว (`:661-671, 873-882`) ทั้งที่หน้าทวนรายการบอกว่าจะใช้โควตา 1 ครั้ง (`:592`)
 - **ปรับใหม่หลังลบ Canvas:** ใบที่ถูกลบหายจาก payload แต่ `sad_canvas_ids` ยังเก็บ id เดิม (`:700, 711, 774`) แผนจึงถูกมองว่า Canvas เปลี่ยนตลอด (ดู spec 06)
 - **enqueue ก่อน insert** (`:753` ก่อน `:768`): ถ้าบันทึก DB ล้มหลังบริการรับงานแล้ว งานจะลอยอยู่ที่บริการ · กดซ้ำพร้อมกัน 2 request ผ่านการตรวจงานค้างได้ทั้งคู่ เพราะไม่มี lock หรือ unique key
 - **Idempotency-Key สร้างใหม่ทุกครั้ง** (`:751`) จึงกันได้แค่การยิงซ้ำระดับ HTTP ไม่ได้ผูกกับเจตนาของผู้ใช้ และ flag `replay` ที่ได้กลับมาไม่ถูกใช้
@@ -151,7 +152,7 @@ headers   = Bearer token, X-Sila5-Timestamp: ts, X-Sila5-Signature: "v1=" + sign
 - **ผลลัพธ์หายถ้าไม่มีใครกลับมา poll** ก่อนบริการลบงาน → กลายเป็น expired ทั้งที่ AI ทำเสร็จแล้ว (ข้อมูลจริง: หมดอายุ 8 งาน · study 3.2)
 - **ตัดโควตาแบบ read-modify-write:** อ่าน `st_ai_token` ตอนต้น request แล้วเขียน `token - 1` กลับ ไม่ใช่ decrement แบบ atomic (`:878-881`)
 - **ข้อความหน้าจอขัดกับ backend:** กล่องเตือน "มีใบต่ำกว่าเกณฑ์ ใช้ทำแผนต่อได้เลย" (`:507-510`; `console-canvas.js:63-69`) ไม่มีทางขึ้น เพราะ checkbox มีเฉพาะ S2 และ server บล็อกใบที่ไม่ใช่ S2
-- เวลาที่บอกครู "อย่างน้อย 5 นาที" (`:519-521, 592`) ไม่ตรงข้อมูลจริงเฉลี่ยราว 2 นาที (study 3.2)
+- เวลาที่บอกครู "อย่างน้อย 5 นาที" (`:520, 779`; `console-canvas.js:229` · หน้าทวนรายการเขียน "ประมาณ 5 นาที" `:592`) ไม่ตรงข้อมูลจริงเฉลี่ยราว 2 นาที (study 3.2)
 - `student_count` ของขอบเขตกลุ่ม/ห้องใช้จำนวนนักเรียนทั้งโครงการ ไม่ใช่ขนาดกลุ่มจริง (`:952`)
 - ปีการศึกษาที่ส่งคำนวณจากปี ค.ศ. ปัจจุบัน + 543 ไม่ได้มาจากปีโครงการ (`:931`)
 
@@ -163,7 +164,7 @@ headers   = Bearer token, X-Sila5-Timestamp: ts, X-Sila5-Signature: "v1=" + sign
 - โควตาผูกกับ (โรงเรียน, ปี) และเก็บเป็นตัวนับในแถวเดียวกับ flag อื่น (study 6.3)
 - AI เขียนทับแผนโดยไม่มี version และไม่มี FK ระหว่าง Canvas กับแผน (study 6.3)
 - ให้ browser เป็นตัวขับ poll งาน AI แทน worker ฝั่ง server
-- ตรวจสิทธิ์ด้วยเลข type ในแต่ละ action และ endpoint BYOA ที่ไม่ตรวจสิทธิ์เลย (`:1006-1034`)
+- ตรวจสิทธิ์ด้วยเลข type ในแต่ละ action และ endpoint BYOA ที่ไม่ตรวจ type เลย ตรวจแค่ login กับโรงเรียนใน session (`:1006-1034`)
 - ใช้ emoji เป็นระดับความรุนแรงของ warning (`planController.php:238`)
 - ข้อความ error ที่ระบุชื่อผู้ให้บริการโมเดล (AI Provider ยัง OPEN)
 
@@ -173,13 +174,13 @@ headers   = Bearer token, X-Sila5-Timestamp: ts, X-Sila5-Signature: "v1=" + sign
 
 | ระบบเดิม | SkillWise | หมายเหตุ |
 |---|---|---|
-| `school_ai_draft` | `ai_jobs` (type = plan synthesis) | status, attempts, input snapshot ที่ pseudonymize แล้ว, output, error_code + ข้อความสำหรับผู้ใช้, model/cost, prompt version |
+| `school_ai_draft` | `ai_jobs` (`job_type` = `plan_synthesis`) | status, attempts, input snapshot ที่ pseudonymize แล้ว, output, error_code + ข้อความสำหรับผู้ใช้, model/cost, prompt version |
 | `sad_canvas_ids` (JSON) | `ai_job_canvas_revisions` | อ้าง **canvas_revisions** ไม่ใช่ canvas เพื่อรู้ว่า AI เห็นฉบับไหน |
-| `sad_form_draft` → เขียนทับ `school_plan` | `development_plan_versions` (source = ai, อ้าง ai_job) + `development_plan_sections` + `development_plan_canvases` | ไม่เขียนทับ ครูเลือก version เอง (spec 06) |
+| `sad_form_draft` → เขียนทับ `school_plan` | `development_plan_versions` (source = ai, อ้าง ai_job) + `development_plan_sections` + `development_plan_canvases` | ไม่เขียนทับ ครูเลือก version เองผ่าน `development_plans.current_version_id` (spec 06) |
 | `sad_warnings` (ข้อความขึ้นต้น emoji) | ใน output ของ `ai_jobs` แบบมี level | |
-| `st_ai_token` | `products` / `product_features` (ค่า quota) + `entitlements` + `usage_ledger` | หักเมื่อสำเร็จเท่านั้น และ idempotent ต่อ job |
+| `st_ai_token` | `products` / `product_features` (ค่า quota ของ feature `ai.plan_synthesis`) + `entitlements` + `usage_ledger` | หักเมื่อสำเร็จเท่านั้น และ idempotent ต่อ job |
 | ชื่อครู / ชื่อเด็กใน free text | `students.pseudonym_key` + ตัวแทนของครูในงาน | map กลับตอนแสดงผล |
-| `canvas_scope` + scopeMap | `case_targets` | ขอบเขตเป็น relation |
+| `canvas_scope` + scopeMap | `cases.scope` + `case_targets` | ประเภทขอบเขตเป็นค่าของ case ส่วนนักเรียน/ห้องเป้าหมายเป็น relation |
 | (ไม่มี) | `audit_logs` | แอดมินเปิดดู input/output ของงานที่มีข้อมูลนักเรียน |
 
 **Permission ที่ endpoint ควรประกาศ** (ค่าเริ่มต้นปฏิเสธ ตรวจที่ guard)
@@ -194,11 +195,11 @@ headers   = Bearer token, X-Sila5-Timestamp: ts, X-Sila5-Signature: "v1=" + sign
 **สิ่งที่ต้องเปลี่ยนจากระบบเดิม**
 
 1. **Pseudonymize ทุกครั้ง** (Context 60.2, CLAUDE.md): แทนชื่อนักเรียนที่ผูกกับ Case ด้วยรหัสจาก `pseudonym_key`, ไม่ส่งชื่อครู (ใช้ป้ายเช่น "ครูคนที่ 1"), ไม่ส่งชื่อโรงเรียนและที่ตั้ง · เก็บ snapshot ที่ส่งจริงไว้ใน `ai_jobs` · แปลงรหัสกลับเป็นชื่อเฉพาะตอนแสดงให้ผู้มีสิทธิ์
-2. **จำนวน Canvas ต่องานตั้งค่าได้** (Context 13) เช่นเก็บใน config ของ tool_version หรือ product_feature ห้าม hard-code 5
+2. **จำนวน Canvas ต่องานตั้งค่าได้** (Context 13) เก็บใน `tool_versions.settings` (seed ใช้ `synthesis.max_canvases`) ห้าม hard-code 5
 3. **เครดิตแทนโควตาโรงเรียน** (Context 60.10.4 ข้อ 3 [DIRECTION]): ลองฟรี 1 ครั้ง แล้วใช้ quota ของแพ็กเกจหรือเติมเครดิต ตัวเลขทั้งหมด OPEN · ครูอิสระต้องใช้ได้โดยไม่ต้องมีองค์กร (Context 34)
 4. **ไม่หักเครดิตเมื่อล้มเหลว** และหักแบบ atomic: เขียน `usage_ledger` ใน transaction เดียวกับการเปลี่ยนสถานะงานเป็นสำเร็จ ใช้ ai_job id เป็น key กันหักซ้ำ (study 7.1 ข้อ 3, 6.3)
 5. **Worker ฝั่ง API** (BullMQ · Context 60.5): job เป็นตัวเรียก AI และ retry ข้อผิดพลาดชั่วคราวแบบ backoff มีเพดาน attempts และเวลา · browser แค่ถามสถานะจาก API ของเรา ผลจึงไม่หายแม้ครูปิดหน้า
-6. **กันงานซ้อนด้วยฐานข้อมูล** เช่น unique partial index ต่อ (ผู้สั่ง, ประเภท) ที่สถานะยังไม่จบ และ idempotency key ที่ผูกกับการกดครั้งนั้น
+6. **กันงานซ้อนด้วยฐานข้อมูล:** unique partial index `ai_jobs_one_open_per_input` ต่อ (ผู้สั่ง, `job_type`, `input_fingerprint`) ที่สถานะ `queued` / `running` และ `idempotency_key` (unique) ที่ผูกกับการกดครั้งนั้น · ระบบเดิมจำกัด 1 งานต่อโรงเรียน ส่วน schema MVP จำกัดต่อชุด input
 7. **ตรวจผล AI ก่อนแสดง** (Context 60.10.4 ข้อ 2): validate โครงสร้างด้วย Zod, ตรวจว่าไม่มีตัวเลขที่ไม่อยู่ใน input, ตรวจว่ารหัสแทนชื่อที่ได้กลับมาเป็นรหัสที่ส่งไปจริง · ถ้าไม่ผ่านให้ retry หรือจบเป็น failed ที่ไม่หักเครดิต
 8. **ผลเป็น version ใหม่ ไม่เขียนทับ** (Context 12) ครูเป็นผู้ตัดสินว่าจะใช้ version ไหน
 9. **ข้อความ error เข้าใจง่ายและคงที่** แยกรหัสภายในกับข้อความที่แสดง ไม่บอกชื่อผู้ให้บริการ

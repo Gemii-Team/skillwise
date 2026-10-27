@@ -2052,7 +2052,7 @@ skillwise/  (monorepo: pnpm + Turborepo)
 - **Migration ย้อนกลับได้ทั้งชุด (transactional DDL):** เหมาะกับการปล่อยฟีเจอร์ถี่และให้ AI เขียน migration (ข้อ 60.10.8)
 - **JSONB:** เก็บค่าตั้งของ Tool โดยไม่ hard-code (ข้อ 45)
 - **timestamptz:** เก็บเวลาบันทึกจากระบบได้แม่น (ข้อ 60.10.5)
-- **partial unique index และ exclusion constraint:** กันข้อมูลซ้ำซ้อนและ race condition ที่ระบบเดิมเคยมี
+- **partial unique index และ exclusion constraint:** กันข้อมูลซ้ำซ้อนในระดับฐานข้อมูล เช่น หักเครดิตงานเดียวซ้ำ หรือนักเรียนอยู่ห้องเดียวกันซ้อนช่วงเวลา
 
 ---
 

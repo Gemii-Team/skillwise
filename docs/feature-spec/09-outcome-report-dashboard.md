@@ -47,10 +47,10 @@
 | `school_action_log` (`:1648-1676`) | `sal_member_id` นักเรียนที่ประทับใจได้**คนเดียว**ต่อบันทึก (`:1660`) · `sal_member_reason` · `sal_signal` ข้อความสัญญาณคั่นด้วย `|` (`:1656`) · `sal_datetime` (ครูระบุ) กับ `sal_create_datetime` (ระบบ) |
 | `school_canvas` | `sc_kpi` ช่อง 7 เป็นข้อความยาว (`:1811`) · `sc_target` (`:1803`) · `sc_scope_id` 1 รายบุคคล |
 | `school_member` | `sm_diary_score` คะแนนสมุดเต็ม 600 (`:1933`) · `sm_lastmodified` · คะแนน Academy ล่าสุดจาก `academy_kahoot_member_score` |
-| `school_training` | flag ระดับโรงเรียน `st_story` / `st_personal_outcome` / `st_conclusion` (`:2245-2247`) ค่า 0 – / 1 ยังไม่ส่ง / 2 รอตรวจ / 3 ผ่าน / 4 ไม่ผ่าน (`console.php:43-65`) |
+| `school_training` | flag ระดับโรงเรียน `st_story` / `st_personal_outcome` / `st_conclusion` (`:2245-2247`) ค่า 0 – / 1 ยังไม่ส่ง (map ของ `st_conclusion` ให้ 1 = กำลังดำเนินการ) / 2 รอตรวจ / 3 ผ่าน / 4 ไม่ผ่าน (`console.php:43-65`) |
 | `school_report_share` (`:2203-2215`) | `srs_token` 43 ตัว เก็บแบบ plaintext + UNIQUE · ผู้สร้าง/เวลา · ผู้ยกเลิก/เวลา · `srs_revoke_datetime` NULL = ใช้งานอยู่ |
-| `school_conclusion` + `_picture` + `_picture_type` (`:1833-1875`) | ฟอร์มรุ่นเก่า: URL วิดีโอสรุป, ข้อความแนะนำโรงเรียน, URL วิดีโอแนะนำ, รูปตามประเภท |
-| `report_archive*` (`docs/schema/migrations/2026-05-05-report-archive.sql:11-53`) | รายงานปีก่อนเก็บเป็น HTML + รูป · ไม่มีโค้ดอ่านในชุดไฟล์นี้ |
+| `school_conclusion` + `_picture` + `_picture_type` (`:1833-1872`) | ฟอร์มรุ่นเก่า: URL วิดีโอสรุป, ข้อความแนะนำโรงเรียน, URL วิดีโอแนะนำ, รูปตามประเภท |
+| `report_archive*` (`docs/schema/migrations/2026-05-05-report-archive.sql:11-53`) | รายงานปีก่อนเก็บเป็น HTML + รูป · มีฟังก์ชันอ่านใน `library/module/global.php:3694-3746` แต่ไม่พบผู้เรียกใน repo |
 
 ## 4. Flow และลำดับสถานะ
 
@@ -164,7 +164,7 @@ stateDiagram-v2
 
 **ความปลอดภัยและ tech debt**
 - token ลิงก์แชร์เก็บ plaintext · ยกเลิกแล้วสร้างใหม่ไม่อยู่ใน transaction — `sila5school.sql:2207`, `console.php:2116-2127`
-- ฟอร์มรุ่นเก่าล็อกสถานะแค่ฝั่ง UI: action บันทึก/อัปโหลด/ลบรูปไม่ตรวจสถานะ · ลบรูปไม่ตรวจว่าเป็นของโรงเรียนนี้ · "ยกเลิก" ตั้งเป็น 0 จากทุกสถานะรวม "ผ่าน" — `conclusionController.php:935-1008, 1092-1106, 1191-1201`
+- ฟอร์มรุ่นเก่าล็อกสถานะแค่ฝั่ง UI: action บันทึก/อัปโหลด/ลบรูปไม่ตรวจสถานะ · ลบรูปไม่ตรวจว่าเป็นของโรงเรียนนี้ · "ยกเลิก" ตั้งเป็น 0 จากทุกสถานะรวม "ผ่าน" — `conclusionController.php:935-1008, 1021-1090, 1092-1106, 1191-1201`
 - ครู type 1/2 แก้สรุปพัฒนาการของครูคนอื่นได้ — `postController.php:61-67`
 - ผูกเด็กด้วยการค้นข้อความ, ผูกสัญญาณด้วยการเทียบสตริง, เก็บ id หลายค่าเป็น CSV (`sat_stc_ids`, `sat_teacher_ids`, `sal_with_person_ids`) — `report.php:105, 309, 346`
 - flag สถานะเมนูกองบนแถว `school_training` แทนสถานะที่คำนวณจากข้อมูลจริง
@@ -182,14 +182,14 @@ stateDiagram-v2
 
 | ระบบเดิม | SkillWise |
 |---|---|
-| `school_post` type 2 + รูป | `student_progress_summaries` (ก่อน/หลัง, ผู้เขียน, ส่วนตัวเป็นค่าเริ่มต้น, อ้าง `ai_jobs` ถ้า AI ร่าง) + `files` (`contains_student_data` = true, private) |
+| `school_post` type 2 + รูป | `student_progress_summaries` (`before_text` / `after_text`, `author_user_id`, `status` draft/final, `ai_job_id` ถ้า AI ร่าง) · ไม่มีคอลัมน์ visibility จึงต้องคุมความเป็นส่วนตัวที่ API · ตารางผูกรูปกับสรุปยังไม่มีใน schema MVP (ถ้าเพิ่ม ไฟล์ต้องเป็น `files` ที่ `contains_student_data` = true และ private) |
 | `sal_member_id` (1 คน) | `practice_log_students` (หลายคน) |
 | `sal_signal` (ข้อความคั่น `|`) | `practice_log_signals` → `success_signals` (FK) |
 | ค้นชื่อใน `sc_title` / ห้องใน CSV | `case_targets` (student หรือ org_unit) + `student_enrollments` |
 | timeline | query/view จาก `case_targets`, `practice_logs`, `practice_log_students`, `practice_log_signals`, `student_progress_summaries` (ไม่ต้องมีตารางเอง) |
 | ตารางรายสัปดาห์ | `practice_sessions` (สถานะต่อ occurrence) |
 | flag `st_*` | คำนวณจาก `action_plans` / `practice_sessions` / `practice_logs` |
-| การแชร์รายชิ้นของครู | `share_grants` |
+| การแชร์รายชิ้นของครู | `share_grants` (ตอนนี้อ้างได้แค่ reflection / coach feedback / practice log / Canvas · ยังอ้าง `student_progress_summaries` ไม่ได้) |
 | พิมพ์ / PDF | `generated_documents` |
 | การเปิดดูข้อมูลเด็ก / ลิงก์แชร์ | `audit_logs` |
 | `school_report_share` | ยังไม่มีตาราง (Later #19) |
@@ -202,8 +202,8 @@ stateDiagram-v2
 
 **สิ่งที่ต้องเปลี่ยนจากระบบเดิมตาม Context**
 1. ผูกเด็กด้วย relation เสมอ ไม่ค้นชื่อในข้อความ (study 6.3) และใช้งานได้แม้ยังไม่ได้ import เด็กครบ (study 7.1 #6)
-2. Timeline แสดงตาม `happened_on` แต่ติดป้ายบันทึกย้อนหลัง · การตรวจความสอดคล้องใช้ `recorded_at` ของระบบ (60.10.5)
-3. สรุปพัฒนาการเป็นของครูและเป็นส่วนตัวโดยค่าเริ่มต้น · แชร์ให้ผู้บริหารผ่าน `share_grants` รายชิ้น (60.3) · ขึ้นสาธารณะต้องอนุมัติและตัดชื่อเด็กทั้งในข้อความและรูป · ไม่ผูกการแชร์กับสถานะส่งงาน
+2. Timeline แสดงตาม `happened_on` แต่ติดป้ายบันทึกย้อนหลัง (`is_backdated`) · การตรวจความสอดคล้องใช้ `recorded_at` ของระบบ (60.10.5)
+3. สรุปพัฒนาการเป็นของครูและเป็นส่วนตัวโดยค่าเริ่มต้น · แชร์ให้ผู้บริหารผ่าน `share_grants` รายชิ้น (60.3 · ต้องเพิ่มคอลัมน์อ้างสรุปใน `share_grants` ซึ่งยังไม่มีใน schema MVP) · ขึ้นสาธารณะต้องอนุมัติและตัดชื่อเด็กทั้งในข้อความและรูป · ไม่ผูกการแชร์กับสถานะส่งงาน
 4. AI ช่วยร่าง (#14): ตัดชื่อเด็กทุกคนที่ปรากฏในข้อความ (ไม่ใช่แค่เด็กเป้าหมาย) ด้วย `pseudonym_key` ก่อนส่ง แล้วแปลงกลับตอนแสดง · ครูต้องยืนยันก่อนบันทึก · การจัดว่า "เด่นชัด/สม่ำเสมอ" เป็นของครู AI แค่เสนอ (ข้อ 12, 53) · งานล้มเหลวไม่ตัดเครดิต · ใช้ร่างแบบ logic เดิมเป็น fallback ได้
 5. Dashboard ตามข้อ 43: ครู (Must) งานและหลักฐานของตัวเอง · โค้ช (Must) ครูที่ดูแล, case, feedback ที่ค้าง · องค์กร (Should) ข้อมูลรวมเท่านั้น ไม่มีตารางรายครู ไม่มีชื่อเด็ก ไม่มี reflection หรือ coach feedback · ไม่นำดาว ระดับ M สมุด และผลสอบมา
 6. แนวคิดจากเมนู 7 ที่นำมาได้: ตัวเลขนับจากบันทึกจริง ไม่ใช่ประเมินตนเอง · "สิ่งที่ยังขาด" แบบ logic · ตารางความสม่ำเสมอรายสัปดาห์ให้ครูและโค้ชเห็น
@@ -214,7 +214,7 @@ stateDiagram-v2
 ## 10. คำถามที่ยัง OPEN
 
 1. บุคลากรคนไหนในองค์กรเห็น timeline รายเด็ก: ทุกคน (60.2) หรือเฉพาะครูที่ดูแลห้อง/อยู่ใน case
-2. สรุปก่อน/หลังต้องผ่านการตรวจหรืออนุมัติหรือไม่ หรือเป็นของครูล้วน (study หัวข้อ 9 ข้อ 2)
+2. สรุปก่อน/หลังต้องผ่านการตรวจหรืออนุมัติหรือไม่ หรือเป็นของครูล้วน (คำถามแบบเดียวกับที่ study หัวข้อ 9 ข้อ 2 ถามเรื่องแผน)
 3. AI ร่างสรุปใช้เครดิตหรือไม่ และเท่าไร (60.10.4 ตัวเลข OPEN)
 4. Dashboard องค์กรต้องมีครูขั้นต่ำกี่คนก่อนแสดงข้อมูลรวม เพราะ 79% ของโรงเรียนมีครูคนเดียว ข้อมูลรวมจึงเท่ากับข้อมูลรายคน (study 7.1 #1)
 5. ขอบเขตการแชร์ให้ผู้บริหาร และยกเลิกการแชร์ได้หรือไม่ (60.3)

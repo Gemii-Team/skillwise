@@ -30,7 +30,7 @@
 | ส่งตรวจ / ยกเลิกการส่ง | type 1 เท่านั้น | `planController.php:746-750, 793-797` |
 | พรีวิว / ดาวน์โหลด PDF | ทุกคนในโรงเรียน **ไม่ตรวจ type** | `planController.php:610-618`; `library/module/console.php:117` |
 | ตัดสินผ่าน / ไม่ผ่าน + เขียน note | เจ้าหน้าที่ในระบบแอดมิน (ไม่อยู่ใน repo) | study 3.3 |
-| แก้/ลบ Canvas (กระทบสถานะแผน) | เจ้าของ Canvas ที่เป็น type 1 หรือ 2 | `canvasController.php:1328-1330, 1372-1375` |
+| แก้/ลบ Canvas (กระทบสถานะแผน) | เจ้าของ Canvas ที่เป็น type 1 หรือ 2 (ลบไม่ตรวจ type แต่ type 3 ถูก readonly guard กันไว้) | `canvasController.php:1328-1330, 1372-1375, 1486-1489` |
 
 - context (ปีโครงการ, โรงเรียน) มาจาก session ทุก action จึงทำได้แค่กับแผนของโรงเรียนตัวเอง
 
@@ -96,13 +96,13 @@ stateDiagram-v2
 9. ช่องว่างให้ครูเติม = ขีดล่างติดกัน ≥ 4 ตัว นับเฉพาะช่องเชิงปริมาณ และ**ไม่บล็อกการส่งตรวจ** — `planController.php:380-383, 409-413`
 10. ยกเลิกการส่งได้เฉพาะจากสถานะ 2 → 1 — `planController.php:799-806`
 11. แก้หรือลบ Canvas ที่อยู่ในแผน: 2 → 1 และ 3 → 4 พร้อม note อัตโนมัติ · สถานะอื่นไม่แตะ — `canvasController.php:1391-1435` (เรียกจาก `:1378, 1495`)
-12. ก่อนบันทึก Canvas ที่อยู่ในแผนรอตรวจ/ผ่าน ฟอร์ม Canvas ขึ้นคำเตือนผลต่อแผน — `canvasController.php:1222-1235, 1402-1411`
+12. ก่อนบันทึกหรือลบ Canvas ที่อยู่ในแผนรอตรวจ/ผ่าน ฟอร์ม Canvas ขึ้นคำเตือนผลต่อแผน — `canvasController.php:1198-1204, 1225-1235, 1402-1411`; `console-canvas.js:401-411`
 13. AI ร่างใหม่สำเร็จ: 0/1 → 1, 2/3 → 1 พร้อม note, 4 คงเดิม (เก็บ note ของแอดมินไว้) — `canvasController.php:1449-1469`
 14. ป้ายแดง: Canvas ในแผนไม่อยู่ S2 → ซ่อนปุ่มส่งตรวจ · ป้ายเหลือง: Canvas ถูกแก้หลังแผนบันทึกล่าสุด → ยังส่งได้ — `planController.php:556-596`; `library/module/console.php:2515-2532`
 15. warning จาก AI แสดงเฉพาะตอนสถานะ ≤ 1 — `planController.php:101-102`
 16. แปลงเป็นแผนลงมือทำได้จากสถานะ 2 หรือ 3 (ไม่ต้องรอผล), Canvas ทุกใบ S2 และแผนบันทึกหลัง Canvas แก้ครั้งล่าสุด · ผลตรวจที่ออกภายหลังไม่กระทบแผนลงมือทำ — `actionPlanController.php:2013-2042`
 17. หลังแปลง ปฏิเสธการแก้ / ส่ง / ยกเลิกส่งทุกทาง แม้ยิง URL ตรง — `planController.php:92-94, 812-819`
-18. PDF: A4 ขอบ 18 มม., หัวกระดาษชื่อแผน + โรงเรียน + โครงการ, 4 หัวข้อ, วันที่พิมพ์ · **ไม่รวม** `sp_note` · โหมด I = พรีวิว, D = ดาวน์โหลด — `planController.php:610-687`
+18. PDF: A4 ขอบซ้าย/ขวา/บน 18 มม. ล่าง 16 มม., หัวกระดาษชื่อแผน + โรงเรียน + โครงการ, 4 หัวข้อ, วันที่พิมพ์ · **ไม่รวม** `sp_note` · โหมด I = พรีวิว, D = ดาวน์โหลด — `planController.php:610-687`
 19. ข้อความแผนรองรับ markdown แค่ตาราง `| a | b |` และตัวหนา `**x**` ทั้งเว็บและ PDF (PDF ใช้ inline style เพราะ mPDF ไม่โหลด CSS ของหน้าเว็บ) — `planController.php:297-377`
 
 ## 6. การตรวจข้อมูลขาเข้า (validation)
@@ -116,7 +116,7 @@ stateDiagram-v2
 
 - AI ร่างใหม่ **เขียนทับข้อความที่ครูแก้ทั้งหมด** ไม่มีประวัติให้ย้อน (`canvasController.php:871`)
 - "ผ่าน → ไม่ผ่าน" ที่ระบบเปลี่ยนเองดูเหมือนผลจากผู้ตรวจ แยกได้จาก note เท่านั้น (`canvasController.php:1413-1416`) · ข้อมูลจริง: ยังไม่มีแผนไหนผ่าน ไม่ผ่าน 31 แผน (study 3.3) ซึ่งปนกันระหว่างสองแหล่งนี้
-- แก้ Canvas ระหว่างสถานะ 1 หรือ 4 ไม่เปลี่ยนสถานะ แค่ขึ้นป้ายเหลือง
+- แก้ Canvas ระหว่างสถานะ 1 หรือ 4 ไม่เปลี่ยนสถานะแผน แต่การบันทึก Canvas ล้างคะแนนใบนั้นเพื่อตรวจใหม่ (`library/module/console.php:1051-1058`) จึงขึ้นป้ายแดงและซ่อนปุ่มส่งตรวจจนกว่าใบนั้นกลับเป็น S2 แล้วจึงเหลือป้ายเหลือง
 - ป้าย "Canvas ถูกแก้" หายทันทีที่แผนถูกบันทึก แม้แก้แค่ช่องที่ไม่เกี่ยว เพราะเทียบเวลาแก้ล่าสุดของแผนกับ Canvas (`library/module/console.php:2510-2531`)
 - **ลบ Canvas ที่อยู่ในแผน** → ถือว่า "Canvas เปลี่ยน" ถาวร (`library/module/console.php:2518-2520`) และ "ให้ AI ปรับใหม่" แก้ไม่ได้เพราะยังเก็บ id เดิม (spec 05 หัวข้อ 7) → ส่งตรวจได้ (ใบที่ถูกลบไม่นับเป็น "ยังไม่พร้อม") แต่**แปลงเป็นแผนลงมือทำไม่ได้** จนกว่าจะเลือก Canvas ชุดใหม่ซึ่งต้องใช้โควตา
 - บันทึกอัตโนมัติรายช่องไม่มีการกันการเขียนชน: เปิด 2 แท็บแก้พร้อมกัน ค่าที่บันทึกทีหลังชนะ
@@ -144,14 +144,14 @@ stateDiagram-v2
 
 | ระบบเดิม | SkillWise | หมายเหตุ |
 |---|---|---|
-| `school_plan` (1 แถว/โรงเรียน/ปี) | `development_plans` | เจ้าของคือครู · องค์กรเป็น optional (ครูอิสระใช้ได้) · ผูก Case/รอบตามที่ทีมตัดสิน |
+| `school_plan` (1 แถว/โรงเรียน/ปี) | `development_plans` | `owner_user_id` เป็นครู (Data Ownership ยัง OPEN ตาม Context 34) · `organization_id` เป็น null ได้ (ครูอิสระใช้ได้) · คอลัมน์ผูก Case/รอบโดยตรงยังไม่มีใน schema MVP (หัวข้อ 10 ข้อ 5) |
 | 6 คอลัมน์ข้อความ | `development_plan_versions` + `development_plan_sections` | หัวข้อเป็นข้อมูล (key, ลำดับ, ชื่อ, แก้ได้หรือไม่) จาก template ของ tool_version ไม่ใช่คอลัมน์ |
-| AI เขียนทับ / ครูแก้ทับ | version ที่ source = ai (อ้าง `ai_jobs`) หรือ teacher (อ้าง version ต้นทาง) | ครูเลือก version ปัจจุบันเอง (Context 12) |
+| AI เขียนทับ / ครูแก้ทับ | version ที่ source = ai (อ้าง `ai_jobs`) หรือ teacher (อ้าง version ต้นทาง) | ครูเลือก version ปัจจุบันเอง เก็บที่ `development_plans.current_version_id` (FK บังคับว่าต้องเป็น version ของแผนเดียวกัน) (Context 12) |
 | `sad_canvas_ids` ของร่างล่าสุด | `development_plan_canvases` (version × canvas_revision) | "Canvas เปลี่ยน" = Canvas มี revision ใหม่กว่าที่ version อ้าง |
 | `st_action_plan` 2/3/4 + `st_action_plan_note` | `plan_reviews` (optional) | มีหรือไม่ยัง OPEN · แยก decision ของผู้ตรวจออกจากเหตุการณ์ระบบ |
 | PDF สร้างสดด้วย mPDF | `generated_documents` + `files` | Playwright ฝั่ง API · ไฟล์ private |
-| ล็อกเมื่อมี `school_action_plan` | `action_plans` เก็บ snapshot ของ version | version ที่ถูก snapshot แก้ไม่ได้ แต่สร้าง version ใหม่สำหรับรอบถัดไปได้ |
-| (ไม่มี) | `audit_logs`, `share_grants` | การเปิดดูโดยแอดมิน / การที่ครูแชร์ให้ผู้อื่น |
+| ล็อกเมื่อมี `school_action_plan` | `action_plans.plan_version_id` อ้าง version ที่ใช้ (snapshot) | version ที่ถูกอ้างแก้ไม่ได้ (ตรวจที่ API · schema ไม่มี trigger กันแก้ section) แต่สร้าง version ใหม่สำหรับรอบถัดไปได้ |
+| (ไม่มี) | `audit_logs` | การเปิดดูโดยแอดมิน · การแชร์แผนให้ผู้อื่นยังไม่มีใน schema MVP (`share_grants` รองรับแค่ reflection, coach feedback, practice log และ canvas) |
 
 **Permission ที่ endpoint ควรประกาศ** (ค่าเริ่มต้นปฏิเสธ ตรวจที่ guard)
 
@@ -160,24 +160,24 @@ stateDiagram-v2
 | ดู / แก้ / สร้าง version / เลือก version ปัจจุบัน | `self.tools.use` + เป็นเจ้าของแผน |
 | ให้ AI ร่าง version ใหม่ | `self.ai.request` (spec 05) |
 | ส่งตรวจ / ยกเลิกการส่ง (ถ้ามี review) | `self.tools.use` + เจ้าของ |
-| Export PDF | `self.tools.use` + เจ้าของ หรือผู้ที่ได้ `share_grants` |
-| โค้ชดูแผนและให้ feedback | `coach.cases.view_assigned`, `coach.feedback.write` (เฉพาะ case ที่ดูแล) |
-| ผู้บริหารองค์กร | `org.dashboard.view_aggregate` — เห็นเฉพาะตัวเลขรวม เช่นจำนวนแผนตามสถานะ · เนื้อหาเห็นเมื่อครูแชร์เท่านั้น (Context 31, 60.3) |
+| Export PDF | `self.tools.use` + เจ้าของ (การให้ผู้อื่น export ขึ้นกับเรื่องการแชร์แผนที่ยังไม่มีใน schema) |
+| โค้ชดูแผนและให้ feedback | `coach.cases.view_assigned`, `coach.feedback.write` (เฉพาะครูหรือ case ที่ได้รับมอบหมายใน `coach_assignments`) |
+| ผู้บริหารองค์กร | `org.dashboard.view_aggregate` — เห็นเฉพาะตัวเลขรวมจาก view `org_activity_summary` (ตอนนี้มีจำนวนแผนลงมือทำที่ active ยังไม่มีตัวเลขแผนพัฒนา) · การเห็นเนื้อหาแผนยัง OPEN (หัวข้อ 10 ข้อ 2 · Context 31, 60.3) |
 | แอดมินไล่ดูแผน | `admin.users.view` / `admin.organizations.view` · เนื้อหาที่มีชื่อนักเรียนต้องมี `admin.sensitive.student.view` และบันทึก `audit_logs` (Context 60.7) |
 | ตัดสินผล review (ถ้ามี) | ยังไม่มี code ในร่าง — ต้องเพิ่มเมื่อทีมตัดสิน (หัวข้อ 10) |
 
 **สิ่งที่ต้องเปลี่ยนจากระบบเดิม**
 
-1. **มี version ทุกครั้ง** (Context 12, study 7): ผล AI = version ใหม่ · ครูแก้ = บันทึกลง version ร่างของครูที่ยังไม่ถูกส่งหรือ snapshot และแช่แข็งเมื่อส่งตรวจหรือถูกนำไปทำแผนลงมือทำ เพื่อไม่ให้ autosave สร้าง version ทุกตัวอักษร
+1. **มี version ทุกครั้ง** (Context 12, study 7): ผล AI = version ใหม่ · ครูแก้ = บันทึกลง version ร่างของครูที่ยังไม่ถูกส่งหรือ snapshot และแช่แข็งเมื่อส่งตรวจ (`submitted_at`) หรือถูกนำไปทำแผนลงมือทำ เพื่อไม่ให้ autosave สร้าง version ทุกตัวอักษร · การแช่แข็งตรวจที่ API (schema ไม่มี constraint นี้)
 2. **หัวข้อแผนเป็นข้อมูล** ไม่ hard-code 4 หัวข้อหรือคำอธิบายที่ผูก 7 กิจวัตร · ส่วน "จุดที่ต้องทบทวน" เป็น section ที่ติดป้ายอ่านอย่างเดียว
 3. **ช่องว่างให้ครูเติม** ใช้ตัวแทนที่กำหนดชัด (ไม่พึ่งขีดล่างที่ครูอาจพิมพ์เอง) และนับทุก section · จะบังคับเติมก่อนส่งหรือไม่ = OPEN
 4. **Canvas เปลี่ยน** คำนวณจาก FK ไป canvas_revision ไม่ใช่เทียบเวลา · การลบ Canvas ต้องไม่ทำให้แผนติดค้าง (revision ที่ถูกอ้างยังอยู่ ใช้ soft delete)
-5. **ไม่เปลี่ยนผลตรวจเอง:** ถ้ามี review ให้ระบบติดป้าย "review นี้อาจล้าสมัย" ที่ตัว review หรือ version แทนการเปลี่ยนเป็นไม่ผ่าน · เหตุการณ์ระบบเก็บเป็นข้อมูลมีโครงสร้าง (ใคร/อะไร/เมื่อไร เป็น id) ไม่ใช่ข้อความที่มีชื่อจริง
-6. **ออกแบบให้ review เปิด/ปิดได้** (study 9 ข้อ 2, 7.1 ข้อ 8): สถานะของแผน (ร่าง / พร้อมใช้) แยกจากสถานะ review (ส่งแล้ว / ผ่าน / ต้องปรับ) ใน `plan_reviews` ถ้าทีมเลือกใช้ Coach Feedback แทน ก็ไม่ต้องรื้อแผน
+5. **ไม่เปลี่ยนผลตรวจเอง:** ถ้ามี review ให้ระบบแสดงป้าย "review นี้อาจล้าสมัย" (คำนวณจาก revision ตอนแสดง ไม่มีคอลัมน์ใน schema) แทนการเปลี่ยนเป็นไม่ผ่าน · เหตุการณ์ระบบเก็บเป็นข้อมูลมีโครงสร้าง (ใคร/อะไร/เมื่อไร เป็น id เช่น `audit_logs` ที่ `actor_type = 'system'`) ไม่ใช่ข้อความที่มีชื่อจริง
+6. **ออกแบบให้ review เปิด/ปิดได้** (study 9 ข้อ 2, 7.1 ข้อ 8): สถานะของแผน (`development_plans.status`: `draft` / `active` / `archived`) แยกจากการส่งตรวจ (`development_plan_versions.submitted_at`) และผลตรวจ (`plan_reviews.outcome`: `approved` / `changes_requested`) ถ้าทีมเลือกใช้ Coach Feedback แทน ก็ไม่ต้องรื้อแผน
 7. **แปลงเป็นแผนลงมือทำด้วย snapshot** แทนการล็อกถาวร (Context 14) · เงื่อนไขก่อนแปลงขึ้นกับว่ามี review หรือไม่ (OPEN)
 8. **PDF ด้วย Playwright ฝั่ง API** (Context 60.5): render จาก template ฝั่ง server, escape ข้อความผู้ใช้ทั้งหมด, แปลง markdown ชุดเล็กด้วยตัวแปลงที่ปลอดภัย, **บล็อก network request ทั้งหมด** ยกเว้นฟอนต์และ asset ที่ฝังมากับระบบ (บทเรียน SSRF ของ mPDF), ใช้ฟอนต์ไทยที่ bundle ไว้ · เก็บผลใน `generated_documents` + `files` แบบ private และตั้งธง `contains_student_data` เมื่อแปลงรหัสกลับเป็นชื่อเด็ก · ดาวน์โหลดผ่าน API ที่ตรวจสิทธิ์
-9. **แผนไม่ผูกกับปีการศึกษาของโรงเรียน:** ผูกกับครูและ Case/รอบการพัฒนา (study 9 ข้อ 7) และครูหนึ่งคนมีหลายแผนได้
-10. **กันการเขียนชน** ด้วยเลข version ของ section หรือ updated_at (optimistic concurrency) และเปลี่ยนสถานะใน transaction
+9. **แผนไม่ผูกกับปีการศึกษาของโรงเรียน:** ผูกกับครู (`owner_user_id`) และครูหนึ่งคนมีหลายแผนได้ · ความเชื่อมกับ Case ตอนนี้อนุมานผ่าน Canvas ที่ใช้ (`development_plan_canvases`) ส่วนการผูก Case หรือรอบการพัฒนาโดยตรงยัง OPEN (study 9 ข้อ 7 · schema ยังไม่มีตาราง cycle)
+10. **กันการเขียนชน** (optimistic concurrency) และเปลี่ยนสถานะใน transaction · `development_plan_sections` ยังไม่มี `updated_at` หรือเลข version ต้องเพิ่มคอลัมน์ หรือใช้ `development_plans.updated_at` ระดับแผน
 11. แสดงชื่อนักเรียนในแผนได้เฉพาะผู้มีสิทธิ์เห็นข้อมูลนักเรียน (Context 60.2) โดยแปลงรหัสจาก AI กลับตอนแสดง
 
 ## 10. คำถามที่ยัง OPEN

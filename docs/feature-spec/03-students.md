@@ -50,7 +50,7 @@
 | `sm_story_running`, `sm_outcome_running` | ตัวชี้ไปตาราง legacy ที่ไม่มีโค้ดใช้แล้ว (study 3.7) |
 
 - ไม่มี unique constraint บนชื่อ การกันชื่อซ้ำทำในโค้ดอย่างเดียว (`sila5school.sql:1922-1948`)
-- ตารางที่อ้าง `sm_id`: `school_post.spo_member_id` และ `academy_kahoot_code_history.akch_sm_id` เป็น FK แบบ SET NULL · `school_action_log.sal_member_id` **ไม่มี FK** (`sila5school.sql:1660`)
+- ตารางที่อ้าง `sm_id`: `school_post.spo_member_id` และ `academy_kahoot_code_history.akch_sm_id` เป็น FK แบบ SET NULL · `school_action_log.sal_member_id` และ `academy_kahoot_member_score.akms_scm_id` (คะแนนสอบ join กับ `sm_id` ที่ `console.php:503-507`) **ไม่มี FK** (`sila5school.sql:1660, 172-186`)
 
 **`school_training_class`** (ห้องเรียนต่อโรงเรียนต่อปี): `stc_class_id` (รหัสชั้น 4–15), `stc_room` (เลขห้อง · 0 = ทั้งชั้น), `stc_student_quantity` (จำนวนนักเรียนที่แจ้งไว้)
 
@@ -95,17 +95,17 @@ flowchart TD
 13. QR: บันทึกแล้วเปลี่ยนบัญชีเป็นประเภทนักเรียนและผูกโรงเรียน พร้อมเก็บวันเกิดไว้ที่ `person` (`registerController.php:1994-2005`)
 14. ลบห้องไม่ได้ถ้ายังมีนักเรียน และต้องเหลืออย่างน้อย 1 ห้อง (`profileController.php:576-589`)
 15. เพิ่มห้องใหม่: ห้ามซ้ำ (ชั้น + เลขห้อง) และระบบตั้ง `stk_class` ของคนที่เพิ่มให้เห็นทุกห้อง (`profileController.php:422-426, 463-467`)
-16. **เฉพาะ Sila5School:** คะแนนสมุดเต็ม 600/400 (`memberController.php:353`; `member2Controller.php:330`), เกณฑ์ผ่านสมุด 360/240 และสอบ 50% (`console.php:496-501`; `member2Controller.php:92`), แถบสีผ่าน ≥ 60%
+16. **เฉพาะ Sila5School:** คะแนนสมุดเต็ม 600/400 (`memberController.php:353`; `member2Controller.php:330`), เกณฑ์ผ่านสมุด 360/240 และสอบ 50% (`console.php:496-501`; `member2Controller.php:92`), แถบสีผ่าน ≥ 60% (`memberController.php:100-101`)
 
 ## 6. การตรวจข้อมูลขาเข้า (validation)
 
 | จุด | ตรวจอะไร | ไม่ได้ตรวจ |
 |---|---|---|
-| เพิ่มเอง `addMemberAction` | ไม่ว่าง 4 ช่อง, trim, ชื่อซ้ำ | ความยาว, คำนำหน้าอยู่ในรายการ, ห้องเป็นของโรงเรียน/ของครู (`memberController.php:282-298`) |
+| เพิ่มเอง `addMemberAction` | ไม่ว่าง 4 ช่อง (ตรวจก่อน trim ช่องที่มีแต่เว้นวรรคจึงผ่าน), trim, ชื่อซ้ำ | ความยาว, คำนำหน้าอยู่ในรายการ, ห้องเป็นของโรงเรียน/ของครู (`memberController.php:282-298`) |
 | แก้ `editSaveAction` | required 4 ช่อง, ชื่อซ้ำ (ยกเว้นตัวเอง) | เหมือนข้างบน + แถวเป็นของโรงเรียน (`memberController.php:449-476`) |
 | Excel `uploadSaveAction` | นามสกุลไฟล์ xlsx, ≤ 50MB, ชนิดไฟล์จาก magic bytes (`memberController.php:596-611`; `global-master.php:1046-1060`) | จำนวนแถว, ความยาวข้อความ, คำนำหน้า (รับข้อความอะไรก็ได้) |
-| QR `studentSaveAction` | required 3 ช่อง + วันเกิดเป็นวันที่ (`registerController.php:1956-1961`) | ปีปัจจุบัน, ประเภทบัญชี, เคยลงทะเบียนแล้ว (ตรวจแค่ตอนเปิดหน้า GET) |
-| คะแนนสมุด | integer ≤ 600/400 | ค่าติดลบ (DB เป็น unsigned) |
+| QR `studentSaveAction` | required 3 ช่อง + วันเกิดเป็นวันที่, trim, ชื่อซ้ำ (`registerController.php:1956-1971`) | ปีปัจจุบัน, ประเภทบัญชี, เคยลงทะเบียนแล้ว (ตรวจแค่ตอนเปิดหน้า GET) |
+| คะแนนสมุด | integer แบบตัวเลขล้วน จึงไม่รับค่าติดลบ, ≤ 600/400 (`memberController.php:353`; `global-master.php:2898-2900`) | ค่าว่าง (ไม่มี `required` กฎอื่นจึงถูกข้าม), แถวเป็นของโรงเรียน |
 
 - ช่องความยาวพึ่ง varchar ของ DB (40/100/100) ถ้า MySQL ไม่ได้อยู่ strict mode ข้อความจะถูกตัดเงียบ ๆ
 
@@ -118,13 +118,13 @@ flowchart TD
 - **ไฟล์ที่อัปโหลดพักไว้ที่ path สัมพัทธ์ `global/tmp/`** และลบด้วย `@unlink` หลังวนครบ ถ้าอ่านไฟล์ throw exception จะไม่ถึงบรรทัดลบ (`memberController.php:614-627, 745`) · ไม่ได้ยืนยันว่า path นี้อยู่ใต้ web root หรือไม่
 - `excel_chunk_filter.php` (อ่านไฟล์ทีละช่วงแถว) **ไม่ได้ถูกใช้** ใน import นักเรียน ซึ่งโหลดทั้งไฟล์ทีเดียว
 - `excelValueBinder.php` กันข้อความที่ขึ้นต้นด้วย "=" ไม่ให้กลายเป็นสูตรตอน **export** (CSV/Excel injection) ไม่เกี่ยวกับ import
-- **ลบนักเรียนเป็น hard delete:** ประวัติที่อ้างนักเรียน (โพสต์สรุปพัฒนาการ) ถูก SET NULL และ `sal_member_id` ในบันทึกรายสัปดาห์กลายเป็น id ลอย
+- **ลบนักเรียนเป็น hard delete:** ประวัติที่อ้างนักเรียน (โพสต์สรุปพัฒนาการ) ถูก SET NULL ส่วน `sal_member_id` ในบันทึกรายสัปดาห์และคะแนนสอบใน `academy_kahoot_member_score` กลายเป็น id ลอย
 - **กรอกใหม่ทุกปี:** นักเรียนคนเดิมปีถัดไปเป็นแถวใหม่ ไม่มีทางเชื่อม timeline ข้ามปี
 - `stk_class` ของครูอาจมี id ห้องที่ถูกลบไปแล้ว (มีโค้ดข้ามไว้ที่ `global.php:2524-2542`)
 
 ## 8. สิ่งที่ห้ามทำตาม
 
-- **SQL injection แบบ second-order:** `stk_class` ถูกต่อเข้า `IN (...)` ตรง ๆ (`console.php:542`) ต้นทางอยู่ที่ `teamController.php:356` (study 6.2)
+- **SQL injection แบบ second-order:** `stk_class` ถูกต่อเข้า `IN (...)` ตรง ๆ (`console.php:542`) ต้นทางที่เขียนค่าจาก POST ลง `stk_class` ดิบอยู่ที่ `teamController.php:243, 280, 356` และ `registerController.php:1568` (study 6.2)
 - **ไม่ตรวจความเป็นเจ้าของที่ server:** แก้/ลบ/กรอกคะแนนด้วย `sm_id` อย่างเดียว และรับ `class` จากฟอร์มโดยไม่ตรวจว่าเป็นห้องของโรงเรียน (`memberController.php:285, 305`; `global.php:1725-1738`)
 - **QR ยอมรับ token ที่เซ็นด้วยคีย์รุ่นเก่า** ซึ่งคือชื่อ context ล้วน คนนอกจึงปลอม token ของห้องใดก็ได้ (`registerController.php:1827, 1943`; `global-master.php:2742-2744`)
 - **`studentSaveAction` ข้ามด่านที่หน้า GET:** ไม่ตรวจปีปัจจุบัน ประเภทบัญชี และการลงทะเบียนซ้ำ บัญชีครูที่ POST ตรงจะถูกเปลี่ยนเป็นประเภทนักเรียน และลงทะเบียนซ้ำด้วยชื่ออื่นได้
@@ -143,16 +143,16 @@ flowchart TD
 | `school_member` (ต่อปี) | `students` (ของ `organizations`, มี `pseudonym_key`) | ระเบียนเดียวต่อคนในองค์กร ไม่กรอกใหม่ทุกปี |
 | `sm_project_id` + `sm_class_id` | `student_enrollments` (student × org_unit × ช่วงวันที่) | เลื่อนชั้น = ปิด enrollment เดิม เปิดใหม่ ประวัติไม่หาย |
 | `school_training_class` + `teachLevel` | `org_units` (tree ที่องค์กรตั้งเอง เช่น ระดับ → ห้อง → กลุ่ม) | ห้าม hard-code ชั้นไทย (ข้อ 35, 47) |
-| `stk_class` (CSV) | relation ระหว่างสมาชิกกับ `org_units` | ดูข้อเสนอ schema ในรายงาน |
+| `stk_class` (CSV) | `membership_org_units` (membership × org_unit) | ห้อง/กลุ่มที่ครูดูแล ใช้กรองหน้าจอ ไม่ใช่การให้สิทธิ์ |
 | ไฟล์ Excel ชั่วคราว | `files` (`contains_student_data` = true, private) | ลบเมื่อ import เสร็จหรือหมดอายุ |
-| ขั้นตอน import (ระบบเดิมไม่มี) | `import_jobs` (สถานะ uploaded → previewed → importing → completed, จำนวนแถว, error รายแถว, `expires_at`) | error รายแถวเก็บแค่เลขแถว/คอลัมน์/ข้อความ ไม่เก็บข้อมูลนักเรียนทั้งแถว · นักเรียนที่มาจาก import มี `students.source` = `import` |
-| (ไม่มี) | `audit_logs` | import, ลบ, export, และแอดมินเปิดดูชื่อนักเรียน |
+| ขั้นตอน import (ระบบเดิมไม่มี) | `import_jobs` (สถานะ uploaded → previewed → importing → completed หรือ failed / cancelled, จำนวนแถว, error รายแถว, `expires_at`) | error รายแถวเก็บแค่เลขแถว/คอลัมน์/ข้อความ ไม่เก็บข้อมูลนักเรียนทั้งแถว · นักเรียนที่มาจาก import มี `students.source` = `import` และ `students.import_job_id` ชี้ไปงาน import นั้น ใช้ไล่ตรวจหรือย้อนการ import ทั้งชุด |
+| (ไม่มี) | `audit_logs` | import, ลบ, และแอดมินเปิดดูชื่อนักเรียน (รวม export ถ้าทีมเพิ่มฟีเจอร์นี้) |
 | `sm_code`, `sm_diary_score`, `sm_type_id` | ไม่ย้าย | ของเฉพาะ Sila5School · ข้อสอบนักเรียนเลื่อนไป Phase 2 (หัวข้อ 8) |
 
 **Permission ที่ endpoint ต้องประกาศ**
 
 - ดูรายชื่อ/รายละเอียด: `org.students.view` + ตรวจว่าอยู่ในองค์กรเดียวกัน (และ org_unit ที่ดูแล ถ้าทีมยืนยันว่าต้องจำกัดรายห้อง)
-- เพิ่ม/แก้/ลบ/import/export: `org.students.manage`
+- เพิ่ม/แก้/ลบ/import: `org.students.manage` (export รายชื่อไม่อยู่ในฟีเจอร์ #4 ถ้าเพิ่มต้องตกลงสิทธิ์ก่อน)
 - จัดการระดับ/ห้อง/กลุ่ม: `org.units.manage`
 - โค้ช: เห็นเฉพาะนักเรียนที่อยู่ใน `case_targets` ของ case ที่ได้รับมอบหมาย ผ่าน `coach.cases.view_assigned`
 - แอดมิน: `admin.sensitive.student.view` และ**บันทึก `audit_logs` ทุกครั้งที่เปิดดู** (ข้อ 60.7)
@@ -162,10 +162,10 @@ flowchart TD
 
 - **ไม่มีทาง QR + login ของนักเรียนใน Phase 1** (ข้อ 44, 60.2) เหลือ 2 ทาง: ครูกรอกเอง และ import · ออกแบบ `students` ให้ผูก `users` ได้ภายหลังโดยไม่ต้องย้ายข้อมูล (ข้อ 44 "ไม่ปิดทาง")
 - **ไม่บังคับให้มีรายชื่อก่อนใช้เครื่องมือ** (study 7.1 ข้อ 6): Canvas ต้องสร้างได้โดยผูกกับ org_unit หรือไม่ผูกนักเรียนเลย และเพิ่มนักเรียนทีหลังได้
-- ฟิลด์ตามข้อ 60.2: ชื่อ นามสกุล ชั้นปี ห้องเรียน (ชั้นและห้องมาจาก enrollment) · คำนำหน้า, ชื่อเล่น, วันเกิด ยัง OPEN (ข้อ 10)
+- ฟิลด์ตามข้อ 60.2: ชื่อ นามสกุล ชั้นปี ห้องเรียน (ชั้นและห้องมาจาก enrollment) · ร่าง schema มี `first_name` (บังคับ), `last_name`, `nickname`, `student_code` (ไม่บังคับ) และไม่มีคำนำหน้ากับวันเกิด · รายการสุดท้ายยัง OPEN (ข้อ 60.2, หัวข้อ 10 ข้อ 1)
 - **Pseudonymize ก่อนส่ง AI ทุกครั้ง** ด้วย `pseudonym_key` แล้วแปลงกลับตอนแสดงผล (ข้อ 60.2) รวมชื่อที่ครูพิมพ์ปนใน free text ของ Canvas/บันทึก
 - import: ใช้ schema ใน `packages/shared` (Zod) · ให้ดูตัวอย่างและ error รายแถวก่อนยืนยัน · บันทึกทั้งไฟล์ใน transaction เดียว · ทำเป็นงานเบื้องหลังถ้าไฟล์ใหญ่ · จับคู่ห้องกับ `org_units` ขององค์กร ไม่ใช่ข้อความชั้นแบบ hard-code
-- export ไฟล์ต้องกันสูตร (แนวเดียวกับ `excelValueBinder`)
+- ถ้าทีมเพิ่ม export ไฟล์ ต้องกันสูตร (แนวเดียวกับ `excelValueBinder`)
 - ลบแบบ soft delete หรือ anonymize ให้ข้อมูลที่อ้างนักเรียนไม่กลายเป็น id ลอย · ระยะเก็บข้อมูลยัง OPEN
 - ไม่มีหน้าสาธารณะที่แสดงชื่อนักเรียน และไฟล์ทุกไฟล์ private โดยค่าเริ่มต้น
 
@@ -174,7 +174,7 @@ flowchart TD
 1. รายการฟิลด์สุดท้ายของนักเรียน: เก็บคำนำหน้า (บอกเพศของผู้เยาว์), ชื่อเล่น, รหัสนักเรียนของโรงเรียน หรือไม่ (ข้อ 60.2)
 2. ชื่อซ้ำ: ยังปฏิเสธเหมือนเดิม หรือเตือนแล้วให้ยืนยัน (มีนักเรียนชื่อซ้ำกันจริงได้)
 3. ครูเห็นนักเรียนทั้งองค์กร หรือเฉพาะ org_unit ที่ดูแล (ระบบเดิมจำกัดรายห้อง)
-4. ครูอิสระที่ไม่สังกัดองค์กร (ข้อ 34) บันทึกนักเรียนได้หรือไม่ และนักเรียนเป็นของใครเมื่อครูย้าย (ข้อ 50 #10 Data Ownership)
+4. ครูอิสระที่ไม่สังกัดองค์กร (ข้อ 34) บันทึกนักเรียนได้หรือไม่ และนักเรียนเป็นของใครเมื่อครูย้าย (ข้อ 50 #10 Data Ownership) · ร่าง schema ตอนนี้ยังไม่ได้ เพราะ `students.organization_id` บังคับ ครูอิสระใช้ `case_targets.label` แทน
 5. ระยะเวลาเก็บข้อมูลนักเรียนและไฟล์ import และใครรับผิดชอบการลบ (study 7.1 ข้อ 9)
 6. วิธีจับชื่อเด็กใน free text ที่ไม่มีในรายชื่อก่อนส่ง AI
 7. ถ้าย้ายข้อมูลจาก Sila5School จะย้ายนักเรียนหรือไม่ และขอความยินยอมอย่างไร (study หัวข้อ 9 ข้อ 11)
