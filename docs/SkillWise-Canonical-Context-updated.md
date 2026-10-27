@@ -1,7 +1,7 @@
 # SE – SkillWise
 ## Canonical Product & System Context for Claude Code
 
-- **Context version:** 24 Oct 2026 (รวมผลประชุมครั้งที่ 1 แล้ว — ดูข้อ 60.10)
+- **Context version:** 27 Oct 2026 (รวมผลประชุมครั้งที่ 1 ในข้อ 60.10 และเรื่องโค้ดอ้างอิง / ขอบเขตฐานข้อมูล MVP ในข้อ 60.11)
 - **Project:** SkillWise Social Enterprise
 - **Repository:** ทีมทำงานหลายเครื่อง จึงไม่ระบุ path ให้ใช้ repository ที่เปิดอยู่ในเครื่องนั้น
 
@@ -1489,7 +1489,7 @@ Claude ห้ามถือว่า Final:
 21. Refund
 22. Cancellation
 23. ~~Tech Stack~~ — TypeScript + Next.js (หน้าบ้าน) + NestJS (หลังบ้าน) ตัดสินแล้ว ดูข้อ 60.5
-24. Database — แนวทาง PostgreSQL [DIRECTION] ดูข้อ 60.5
+24. ~~Database~~ — PostgreSQL ตัดสินแล้ว ดูข้อ 60.11
 25. Hosting
 26. Cloud Provider
 27. Storage
@@ -1698,7 +1698,7 @@ Claude Code ควรจำ 10 ข้อนี้:
 
 - **ไม่นำโค้ดของ Sila5School มาใช้** เพราะเป็น framework ที่ทีมเขียนขึ้นเอง
 - นำมาเฉพาะ**แนวคิดและการออกแบบระบบ**ตามข้อ 10
-- ศึกษาโค้ดเดิมเพื่อทำความเข้าใจแนวคิดได้ แต่ห้าม copy
+- ศึกษาโค้ดเดิมเพื่อทำความเข้าใจแนวคิดได้ แต่ห้าม copy *(แก้เพิ่มโดยข้อ 60.11: เก็บสำเนาโค้ดไว้เป็นโค้ดอ้างอิงในเครื่องได้ แต่ยังห้ามนำไปใช้เป็นโค้ด production)*
 
 ### 60.2 ข้อมูลนักเรียนใน Phase 1
 
@@ -1769,7 +1769,7 @@ skillwise/  (monorepo: pnpm + Turborepo)
 - หน้าบ้าน: Next.js (App Router) + React + Tailwind + shadcn/ui
 - หลังบ้านแอดมินและโค้ช: หน้าเว็บใน `apps/web` ด้วย shadcn/ui + TanStack Table ข้อมูลผ่าน API
 - API: NestJS
-- ฐานข้อมูล: PostgreSQL + Prisma (ใช้ใน `apps/api` เท่านั้น)
+- ฐานข้อมูล: PostgreSQL + Prisma (ใช้ใน `apps/api` เท่านั้น) · PostgreSQL เป็น [CONFIRMED] แล้วตามข้อ 60.11
 - ตรวจข้อมูลขาเข้า: Zod
 - งานเบื้องหลังและตั้งเวลา: BullMQ + Redis (`@nestjs/bullmq`) + `@nestjs/schedule` · ถ้าไม่อยากเพิ่ม Redis ใช้ pg-boss แทนได้ แต่ต้องเขียนเชื่อมกับ NestJS เอง
 - Login: ทำใน NestJS (Passport: Google, LINE) เก็บ session ใน httpOnly cookie
@@ -2018,6 +2018,41 @@ skillwise/  (monorepo: pnpm + Turborepo)
 - การเปิดกล้องยืนยันตัวตนในคอร์สออนไลน์
 - n8n หรือ workflow ในระบบ
 - Hosting / Cloud, AI Provider / Model, Payment Gateway
+
+### 60.11 โค้ดอ้างอิง ขอบเขตฐานข้อมูล MVP และฐานข้อมูล (27 Oct 2026)
+
+**[CONFIRMED]** ทีม dev ขอโค้ดของฟีเจอร์ที่เกี่ยวข้องและร่างฐานข้อมูลเบื้องต้น เพื่อนำไปเขียน SkillWise
+
+#### 60.11.1 โค้ดอ้างอิงจาก Sila5School (แก้เพิ่มข้อ 60.1)
+
+- **เก็บสำเนาโค้ด PHP** ของ Sila5School เฉพาะส่วนที่เกี่ยวกับฟีเจอร์ SkillWise **โดยไม่แปลงภาษา** เพื่อให้ทีมและ AI ที่ช่วยเขียนโค้ดเข้าใจ business rule ตรงกัน
+- **เก็บในเครื่องเท่านั้น** ที่ `reference/sila5school/` ซึ่งอยู่ใน `.gitignore`
+  - เหตุผล: repo ต้นทาง (`RGTCenter/sila5school`) เป็น private แต่ repo SkillWise เป็น public และโค้ดนี้คือระบบที่ยังใช้งานจริงและมีข้อมูลนักเรียน
+  - ส่งต่อทีมผ่านช่องทางที่ไม่ public เท่านั้น
+- ไม่ copy config ที่มี secret, vendor และข้อมูลจริง
+- **ข้อ 60.1 ส่วนที่ห้ามใช้โค้ดเดิมเป็นโค้ด production ยังคงเดิม** · SkillWise เขียนใหม่ด้วย TypeScript ตามข้อ 60.5
+- spec รายฟีเจอร์ที่อธิบายโค้ดอ้างอิงอยู่ที่ `docs/feature-spec/` ขึ้น GitHub ได้
+- เอกสารศึกษาและ spec **คงรายละเอียดปัญหาของระบบเดิมไว้ รวมถึงช่องโหว่** เพื่อให้ทีมและ AI รู้ตรงกันว่าอะไรห้ามทำตาม
+
+#### 60.11.2 ขอบเขตการออกแบบฐานข้อมูล MVP
+
+- ออกแบบให้ครอบคลุมฟีเจอร์ระดับ **Must + Should** ในหัวข้อ 8 ของ `docs/sila5school-study.md` แต่**สร้างระบบจาก Must ก่อน**
+- Should ข้อไหนจะสร้างใน MVP ตัดสินภายหลังได้โดยไม่ต้องแก้ schema
+- รายการฟีเจอร์ Phase 1 สุดท้ายยังเป็น **[OPEN]** (ข้อ 50 #30)
+- ร่าง schema **[DIRECTION]** รอทีมตรวจ อยู่ที่ `docs/database/`:
+  - `schema.sql`
+  - `seed.sql` (mock data ที่แต่งขึ้น)
+  - `rls.sql`
+  - `checks.sql`
+
+#### 60.11.3 ฐานข้อมูล: PostgreSQL
+
+**[CONFIRMED]** ยกระดับจาก [DIRECTION] ในข้อ 50 #24 และ 60.5 เหตุผล:
+- **Row-Level Security:** กันข้อมูลนักเรียนข้ามองค์กรได้ในระดับฐานข้อมูล เป็นชั้นที่สองต่อจาก guard ของ API (ข้อ 60.2)
+- **Migration ย้อนกลับได้ทั้งชุด (transactional DDL):** เหมาะกับการปล่อยฟีเจอร์ถี่และให้ AI เขียน migration (ข้อ 60.10.8)
+- **JSONB:** เก็บค่าตั้งของ Tool โดยไม่ hard-code (ข้อ 45)
+- **timestamptz:** เก็บเวลาบันทึกจากระบบได้แม่น (ข้อ 60.10.5)
+- **partial unique index และ exclusion constraint:** กันข้อมูลซ้ำซ้อนและ race condition ที่ระบบเดิมเคยมี
 
 ---
 
