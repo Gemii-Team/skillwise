@@ -4,10 +4,14 @@
 
 1. `docs/SkillWise-Canonical-Context-updated.md` — **source of truth** ของ product และระบบ
    - ป้ายความน่าเชื่อถือ: ข้อ 0 · กฎการทำงาน: ข้อ 52 · สิ่งที่ห้ามทำ: ข้อ 53 · ขั้นตอนก่อนเขียนโค้ด: ข้อ 59
-   - Decision log ล่าสุดอยู่ข้อ 60 · Tech stack อยู่ข้อ 60.5 · ผลประชุมครั้งที่ 1 อยู่ข้อ 60.10
+   - Decision log ล่าสุดอยู่ข้อ 60 · Tech stack อยู่ข้อ 60.5 · ผลประชุมครั้งที่ 1 อยู่ข้อ 60.10 · โค้ดอ้างอิงและฐานข้อมูลอยู่ข้อ 60.11
 2. `docs/sila5school-study.md` — ผลศึกษาระบบ Sila5School เดิม
-   - ใช้ได้เฉพาะ**แนวคิด** ห้าม copy โค้ด (ข้อ 60.1)
+   - ใช้ได้เฉพาะ**แนวคิด** ห้ามนำโค้ดเดิมไปใช้เป็นโค้ด production (ข้อ 60.1, 60.11)
    - ร่างฟีเจอร์ Phase 1 อยู่หัวข้อ 8 · คำถามที่ทีมยังต้องตัดสินอยู่หัวข้อ 9
+3. `docs/feature-spec/` — spec รายฟีเจอร์จากโค้ดเดิม · หัวข้อ 9 ของแต่ละไฟล์คือแนวทางใน SkillWise
+4. `docs/database/` — ร่าง schema PostgreSQL ของ MVP · อ่าน `README.md` ก่อนแก้ schema
+
+สำเนาโค้ด PHP ของ Sila5School อยู่ที่ `reference/sila5school/` **ในเครื่องเท่านั้น** (อยู่ใน `.gitignore`) ห้าม commit, push หรือย้ายไปที่สาธารณะ
 
 ถ้า requirement ใหม่ขัดกับ Context **ห้ามแก้เงียบ ๆ** ให้ชี้ conflict แล้วถามก่อน
 
